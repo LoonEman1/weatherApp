@@ -1,48 +1,45 @@
 package com.example.weatherapp.ui.theme.view
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
+import com.example.weatherapp.data.location.GeoManager
 import com.example.weatherapp.data.model.WeatherInfo
 import com.example.weatherapp.data.viewmodel.WeatherUIState
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
@@ -51,11 +48,52 @@ import com.example.weatherapp.data.viewmodel.WeatherViewModel
 fun WeatherScreen(navController: NavHostController) {
     val viewModel: WeatherViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
+    val geoDataState by viewModel.geoDataState.collectAsState()
+    val hasFinePermission by viewModel.hasFinePermission.collectAsState()
+    val hasCoarsePermissions by viewModel.hasCoarsePermission.collectAsState()
+    val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
+
+    val geoManager = GeoManager(context = LocalContext.current)
+
+    val activity = LocalActivity.current
+
+    if (!hasFinePermission|| !hasCoarsePermissions) {
+        val fineGranted = ContextCompat.checkSelfPermission(
+            LocalContext.current,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            LocalContext.current,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        viewModel.updateFinePermission(fineGranted)
+        viewModel.updateCoarsePermission(coarseGranted)
+        viewModel.updatePermissionStatus(fineGranted, coarseGranted)
+    }
 
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.cloudsbackground))
 
-    LaunchedEffect(Unit) {
-        viewModel.loadWeather()
+    val requestPermissions = PermissionRequester { granted ->
+        viewModel.updatePermissionStatus(granted)
+    }
+
+
+    LaunchedEffect(hasLocationPermission) {
+        if (!hasLocationPermission) {
+            requestPermissions()
+        }
+    }
+
+
+    LaunchedEffect(hasLocationPermission, hasCoarsePermissions, hasFinePermission, geoDataState) {
+        if (activity != null && geoDataState == null && hasLocationPermission) {
+            geoManager.updateLastKnownLocation(activity) { geoData ->
+                geoData?.let {
+                    viewModel.updateLocation(it)
+                    viewModel.loadWeather(geoData.latitude, geoData.longitude)
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -130,10 +168,10 @@ fun WeatherScreen(navController: NavHostController) {
                         val descriptionCode = getWeatherDescription(weatherCode)
 
                         val weatherComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny))
-                        val location = "Ростов-на-Дону"
 
                         Text(
-                            text = "Прогноз погоды на сегодня в городе \n $location:",
+
+                            text = "Прогноз погоды на сегодня в городе \n ${geoDataState?.city}:",
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
                                 .fillMaxWidth(),
@@ -225,9 +263,18 @@ fun getWeatherDescription(weatherCode: Int?): WeatherInfo {
 }
 
 @Composable
-@Preview
-fun ShowWeatherScreen()
-{
-    val navController = rememberNavController()
-    WeatherScreen(navController)
+fun PermissionRequester(onPermissionResult: (Boolean) -> Unit): () -> Unit {
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        onPermissionResult(granted)
+    }
+
+    return { launcher.launch((arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )))}
 }
+

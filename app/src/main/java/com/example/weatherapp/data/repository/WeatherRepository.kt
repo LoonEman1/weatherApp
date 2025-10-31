@@ -4,11 +4,11 @@ import com.example.weatherapp.data.api.RetrofitClient
 import com.example.weatherapp.data.model.WeatherResponse
 
 class WeatherRepository {
-    suspend fun getWeather() : Result<WeatherResponse> {
+    suspend fun getWeather( latitude: Double, longitude: Double) : Result<WeatherResponse> {
         return try {
             val response = RetrofitClient.weatherApi.getWeather(
-                latitude = 47.2222596,
-                longitude = 39.7198736
+                latitude = latitude,
+                longitude = longitude
             )
             Result.success(response)
         } catch (e : Exception) {
