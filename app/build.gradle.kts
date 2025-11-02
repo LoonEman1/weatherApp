@@ -41,6 +41,7 @@ android {
 
 dependencies {
     implementation(libs.play.services.location)
+    implementation(libs.androidx.work.runtime.ktx)
     val nav_version = "2.9.3"
 
     implementation("androidx.navigation:navigation-compose:$nav_version")

@@ -39,7 +39,6 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
-import com.example.weatherapp.data.location.GeoManager
 import com.example.weatherapp.data.model.WeatherInfo
 import com.example.weatherapp.data.viewmodel.WeatherUIState
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
@@ -48,16 +47,20 @@ import com.example.weatherapp.data.viewmodel.WeatherViewModel
 fun WeatherScreen(navController: NavHostController) {
     val viewModel: WeatherViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
-    val geoDataState by viewModel.geoDataState.collectAsState()
+
+
     val hasFinePermission by viewModel.hasFinePermission.collectAsState()
     val hasCoarsePermissions by viewModel.hasCoarsePermission.collectAsState()
     val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
+    val city by viewModel.geoCity.collectAsState()
+    val weather by viewModel.weatherResponse.collectAsState()
 
-    val geoManager = GeoManager(context = LocalContext.current)
 
-    val activity = LocalActivity.current
+    val context = LocalContext.current
 
-    if (!hasFinePermission|| !hasCoarsePermissions) {
+
+
+    if (!hasFinePermission || !hasCoarsePermissions) {
         val fineGranted = ContextCompat.checkSelfPermission(
             LocalContext.current,
             Manifest.permission.ACCESS_FINE_LOCATION
@@ -84,17 +87,12 @@ fun WeatherScreen(navController: NavHostController) {
         }
     }
 
-
-    LaunchedEffect(hasLocationPermission, hasCoarsePermissions, hasFinePermission, geoDataState) {
-        if (activity != null && geoDataState == null && hasLocationPermission) {
-            geoManager.updateLastKnownLocation(activity) { geoData ->
-                geoData?.let {
-                    viewModel.updateLocation(it)
-                    viewModel.loadWeather(geoData.latitude, geoData.longitude)
-                }
-            }
+    LaunchedEffect(hasLocationPermission) {
+        if(hasLocationPermission) {
+            viewModel.startLocationWorker(context)
         }
     }
+
 
     Scaffold(
     ) { innerPadding ->
@@ -161,17 +159,13 @@ fun WeatherScreen(navController: NavHostController) {
                     }
 
                     is WeatherUIState.Success -> {
-                        val weather = (uiState as WeatherUIState.Success).weatherResponse
-                        val temperature = weather.current?.temperature
-                        val windSpeed = weather.current?.windSpeed
-                        val weatherCode = weather.current?.weatherCode
-                        val descriptionCode = getWeatherDescription(weatherCode)
+                        val descriptionCode = getWeatherDescription(weather?.current?.weatherCode)
 
                         val weatherComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny))
 
                         Text(
 
-                            text = "Прогноз погоды на сегодня в городе \n ${geoDataState?.city}:",
+                            text = "Прогноз погоды на сегодня в городе \n ${city}:",
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
                                 .fillMaxWidth(),
@@ -190,7 +184,7 @@ fun WeatherScreen(navController: NavHostController) {
                         )
                         Spacer(modifier = Modifier.padding(16.dp))
                         Text(
-                            text = "Температура: $temperature °C",
+                            text = "Температура: ${weather?.current?.temperature} °C",
                             fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontFamily = FontFamily.SansSerif,
@@ -206,7 +200,7 @@ fun WeatherScreen(navController: NavHostController) {
                         )
                         Spacer(modifier = Modifier.padding(4.dp))
                         Text(
-                            text = "Скорость ветра: $windSpeed км/ч",
+                            text = "Скорость ветра: ${weather?.current?.windSpeed} км/ч",
                             fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontFamily = FontFamily.SansSerif,
@@ -223,7 +217,7 @@ fun WeatherScreen(navController: NavHostController) {
                         Spacer(modifier = Modifier.padding(4.dp))
 
                         Text(
-                            text = "Состояние: ${descriptionCode.description}",
+                            text = "Состояние: ${weather?.current?.weatherCode}",
                             fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontFamily = FontFamily.SansSerif,
