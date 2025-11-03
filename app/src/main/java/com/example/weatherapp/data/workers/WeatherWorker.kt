@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
 import com.example.weatherapp.data.repository.WeatherRepository
+import com.google.gson.Gson
 
 class WeatherWorker(context : Context, workerParameters: WorkerParameters) : CoroutineWorker(context, workerParameters) {
     override suspend fun doWork(): Result {
@@ -14,9 +15,13 @@ class WeatherWorker(context : Context, workerParameters: WorkerParameters) : Cor
 
         val success = WeatherRepository().getWeather(lat, lon)
         return if (success.isSuccess) {
-            Log.d("WeatherWorker", success.getOrNull().toString())
+
+            val weatherResponse = success.getOrNull()
+            val gson = Gson()
+            val weatherJson = gson.toJson(weatherResponse)
+            Log.d("WeatherWorker", weatherJson)
             val output = Data.Builder()
-                .putString("weather_data", success.getOrNull()?.toString())
+                .putString("weather_data", weatherJson)
                 .build()
             Result.success(output)
         } else {

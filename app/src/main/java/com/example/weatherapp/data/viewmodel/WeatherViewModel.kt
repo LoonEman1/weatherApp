@@ -13,6 +13,7 @@ import com.example.weatherapp.data.model.WeatherResponse
 import com.example.weatherapp.data.repository.WeatherRepository
 import com.example.weatherapp.data.workers.LocationWorker
 import com.example.weatherapp.data.workers.WorkManagerController
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,10 +36,7 @@ class WeatherViewModel : ViewModel() {
     private val _hasCoarsePermission = MutableStateFlow(false)
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
-    private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
 
-
-    val weatherResponse: StateFlow<WeatherResponse?> = _weatherResponse.asStateFlow()
     val geoCity: StateFlow<String?> = _geoCity.asStateFlow()
 
     val hasFinePermission : StateFlow<Boolean> = _hasFinePermission.asStateFlow()
@@ -68,9 +66,13 @@ class WeatherViewModel : ViewModel() {
         _hasLocationPermission.value = coarseStatus or fineStatus
     }
 
+    fun updateUiState(uiState: WeatherUIState) {
+        _uiState.value = uiState
+    }
+
     fun startLocationWorker(context : Context) {
         if(!isWorkerStarted) {
-            Log.d("WeatherViewModel", "Запуск цепочки воркеров через WorkManagerController")
+            Log.d("WeatherViewModel", "Start chain of workers through WorkManagerController")
             isWorkerStarted = true
             val workRequest = WorkManagerController(context)
             workRequest.startLocationAndWeatherChain()
@@ -79,7 +81,7 @@ class WeatherViewModel : ViewModel() {
     }
 
     fun observeWorkChain(context: Context, controller: WorkManagerController, uniqueWorkName : String) {
-        Log.d("WeatherViewModel", "Наблюдение за WorkManager цепочкой $uniqueWorkName")
+        Log.d("WeatherViewModel", "Observe WorkManager for chain $uniqueWorkName")
         WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("weather_work_chain")
             .observeForever { workInfos ->
                 val locationInfo = workInfos.find { it.id == controller.getLocationWorkId() }
@@ -98,9 +100,12 @@ class WeatherViewModel : ViewModel() {
                     Log.d("WeatherViewModel", "WeatherWorker finished: state=${it.state}")
                     if (it.state.isFinished) {
                         val weatherJson = it.outputData.getString("weather_data")
-                        Log.d("WeatherViewModel", "Weather JSON из WeatherWorker: $weatherJson")
+                        val gson = Gson()
+
+                        Log.d("WeatherViewModel", "Weather JSON from WeatherWorker: $weatherJson")
                         weatherJson?.let { json ->
-                            _weatherResponse.value = weatherResponse.value
+                            val weatherResponseObj = gson.fromJson(json, WeatherResponse::class.java)
+                            _uiState.value = WeatherUIState.Success(weatherResponseObj)
                         }
                     }
                 }

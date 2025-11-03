@@ -53,8 +53,6 @@ fun WeatherScreen(navController: NavHostController) {
     val hasCoarsePermissions by viewModel.hasCoarsePermission.collectAsState()
     val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
     val city by viewModel.geoCity.collectAsState()
-    val weather by viewModel.weatherResponse.collectAsState()
-
 
     val context = LocalContext.current
 
@@ -159,7 +157,11 @@ fun WeatherScreen(navController: NavHostController) {
                     }
 
                     is WeatherUIState.Success -> {
-                        val descriptionCode = getWeatherDescription(weather?.current?.weatherCode)
+                        val weather = (uiState as WeatherUIState.Success).weatherResponse
+                        val temperature = weather.current?.temperature
+                        val windSpeed = weather.current?.windSpeed
+                        val weatherCode = weather.current?.weatherCode
+                        val descriptionCode = getWeatherDescription(weatherCode)
 
                         val weatherComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny))
 
@@ -184,7 +186,7 @@ fun WeatherScreen(navController: NavHostController) {
                         )
                         Spacer(modifier = Modifier.padding(16.dp))
                         Text(
-                            text = "Температура: ${weather?.current?.temperature} °C",
+                            text = "Температура: $temperature °C",
                             fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontFamily = FontFamily.SansSerif,
@@ -200,7 +202,7 @@ fun WeatherScreen(navController: NavHostController) {
                         )
                         Spacer(modifier = Modifier.padding(4.dp))
                         Text(
-                            text = "Скорость ветра: ${weather?.current?.windSpeed} км/ч",
+                            text = "Скорость ветра: $windSpeed км/ч",
                             fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontFamily = FontFamily.SansSerif,
@@ -217,7 +219,7 @@ fun WeatherScreen(navController: NavHostController) {
                         Spacer(modifier = Modifier.padding(4.dp))
 
                         Text(
-                            text = "Состояние: ${weather?.current?.weatherCode}",
+                            text = "Состояние: ${descriptionCode.description}",
                             fontSize = 20.sp,
                             textAlign = TextAlign.Center,
                             fontFamily = FontFamily.SansSerif,

@@ -14,10 +14,11 @@ class LocationWorker(
     override suspend fun doWork(): Result {
 
         val geoManager = GeoManager()
+
         val geoData = geoManager.updateLastKnownLocation(applicationContext)
 
         if (geoData == null) {
-            Log.d("LocationWorker", "Work ${id}")
+            Log.d("LocationWorker", "Work ${id}, GEODATA IS NULL")
             return Result.retry()
         }
         else {
