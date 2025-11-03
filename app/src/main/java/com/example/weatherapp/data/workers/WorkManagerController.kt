@@ -19,7 +19,6 @@ class WorkManagerController(private val context : Context) {
             .setRequiredNetworkType(NetworkType.NOT_ROAMING)
             .build()
         val locationWorker = OneTimeWorkRequestBuilder<LocationWorker>()
-            .setConstraints(constraints)
             .build()
         locationWorkId = locationWorker.id
 
