@@ -10,6 +10,12 @@ import com.google.gson.Gson
 
 class WeatherWorker(context : Context, workerParameters: WorkerParameters) : CoroutineWorker(context, workerParameters) {
     override suspend fun doWork(): Result {
+
+        if (runAttemptCount >= 5) {
+            Log.d("WeatherWorker", "Maximum retry attempts reached, giving up")
+            return Result.failure()
+        }
+
         val lat = inputData.getDouble("latitude", 0.0)
         val lon = inputData.getDouble("longitude", 0.0)
 

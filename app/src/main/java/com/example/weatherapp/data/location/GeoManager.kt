@@ -16,10 +16,12 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
 class GeoManager() {
@@ -47,28 +49,29 @@ class GeoManager() {
 
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                 if (location != null) {
-                    GlobalScope.launch(Dispatchers.IO) {
+                    CoroutineScope(Dispatchers.IO).launch {
                         val geoData = geocodeLocation(location, context, locale)
                         Log.d("Geodata", geoData.toString())
                         cont.resume(geoData)
                     }
                 } else {
-                    GlobalScope.launch(Dispatchers.IO) {
-                        Log.d("LocationRequest", "try to get location")
-                        val locationRequest = LocationRequest.Builder(1000)
-                            .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
-                            .setIntervalMillis(0L)
-                            .setMinUpdateIntervalMillis(0L)
-                            .setMaxUpdates(1)
-                            .build()
+                    Log.d("LocationRequest", "try to get location")
+                    val locationRequest = LocationRequest.Builder(200)
+                        .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                        .setMinUpdateIntervalMillis(400)
+                        .setMaxUpdateDelayMillis(100)
+                        .setMaxUpdates(1)
+                        .build()
 
                         val locationCallback = object : LocationCallback() {
                             override fun onLocationResult(locationResult: LocationResult) {
                                 val loc = locationResult.lastLocation
                                 if (loc != null) {
-                                    val geoData = geocodeLocation(loc, context, locale)
-                                    Log.d("Geodata", geoData.toString())
-                                    cont.resume(geoData)
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val geoData = geocodeLocation(loc, context, locale)
+                                        Log.d("Geodata", geoData.toString())
+                                        cont.resume(geoData)
+                                    }
                                 } else {
                                     Log.e("GeoManager", "Failed to get location")
                                     cont.resume(null)
@@ -77,12 +80,12 @@ class GeoManager() {
                             }
                         }
 
+                        Log.d("GeoManager", "request location updates")
                         fusedLocationClient.requestLocationUpdates(
                             locationRequest,
                             locationCallback,
                             Looper.getMainLooper()
                         )
-                    }
                 }
             }.addOnFailureListener { e ->
                 Log.e("GeoManager", "Failed to get location", e)

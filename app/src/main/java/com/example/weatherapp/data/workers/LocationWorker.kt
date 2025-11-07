@@ -6,6 +6,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.weatherapp.data.location.GeoManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 
 class LocationWorker(
@@ -13,22 +15,29 @@ class LocationWorker(
     ) : CoroutineWorker(context, workerParameters) {
     override suspend fun doWork(): Result {
 
-        val geoManager = GeoManager()
+        return withContext(Dispatchers.IO)
+        {
+            if (runAttemptCount >= 5) {
+                Log.d("LocationWorker", "Maximum retry attempts reached, giving up")
+                Result.failure()
+            }
+            val geoManager = GeoManager()
 
-        val geoData = geoManager.updateLastKnownLocation(applicationContext)
+            val geoData = geoManager.updateLastKnownLocation(applicationContext)
 
-        if (geoData == null) {
-            Log.d("LocationWorker", "Work ${id}, GEODATA IS NULL")
-            return Result.retry()
-        }
-        else {
-            Log.d("LocationWorker", geoData.city)
-            val outputData = workDataOf(
-                "latitude" to geoData.latitude,
-                "longitude" to geoData.longitude,
-                "city" to geoData.city
-            )
-            return Result.success(outputData)
+            if (geoData == null) {
+                Log.d("LocationWorker", "Work ${id}, GEODATA IS NULL")
+                Result.retry()
+            }
+            else {
+                Log.d("LocationWorker", geoData.city)
+                val outputData = workDataOf(
+                    "latitude" to geoData.latitude,
+                    "longitude" to geoData.longitude,
+                    "city" to geoData.city
+                )
+                Result.success(outputData)
+            }
         }
     }
 }
