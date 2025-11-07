@@ -3,14 +3,18 @@ package com.example.weatherapp.ui.theme.view
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,11 +32,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -73,6 +77,8 @@ fun WeatherScreen(navController: NavHostController) {
     val city by viewModel.geoCity.collectAsState()
     val dailyForecasts by viewModel.dailyForecasts.collectAsState()
 
+    val isDay by viewModel.isDay.collectAsState()
+
     val context = LocalContext.current
 
 
@@ -92,7 +98,13 @@ fun WeatherScreen(navController: NavHostController) {
         viewModel.updatePermissionStatus(fineGranted, coarseGranted)
     }
 
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.cloudsbackground))
+    val backgroundRes = if (isDay) {
+        R.raw.background_fullscreen_day
+    } else {
+        R.raw.background_fullscreen_night
+    }
+
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(backgroundRes))
 
     val requestPermissions = PermissionRequester { granted ->
         viewModel.updatePermissionStatus(granted)
@@ -120,23 +132,25 @@ fun WeatherScreen(navController: NavHostController) {
                 .fillMaxSize()
                 .padding()
         ) {
-            Box(
+            /*Box(
                 modifier = Modifier
                     .matchParentSize()
                     .background(Brush.verticalGradient(
                         colors = listOf(Color(0xFF2badff), Color(0xFF2aacff), Color(0xFF2cadff), Color(0xFF71c8ff), Color(0xFF72c9ff), Color(0xFF70c8ff))
                     ))
-            )
+            )*/
             LottieAnimation(
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
-                modifier = Modifier.matchParentSize()
+                modifier = Modifier.fillMaxHeight()
+                    .scale(1.4f),
+                speed = 0.6f
             )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.Start
             ) {
                 when (uiState) {
                     is WeatherUIState.Loading -> {
@@ -154,27 +168,48 @@ fun WeatherScreen(navController: NavHostController) {
                         val temperature = weather.current?.temperature
                         val windSpeed = weather.current?.windSpeed
                         val weatherCode = weather.current?.weatherCode
-                        val descriptionCode = getWeatherDescription(weatherCode)
+                        val descriptionCode = getWeatherDescription(weatherCode, !isDay)
 
-                        val weatherComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny))
-
-                        WeatherText("Прогноз погоды на сегодня в городе \n ${city}:",)
-                        Spacer(modifier = Modifier.padding(16.dp))
-                        WeatherText("Температура: $temperature °C")
-                        Spacer(modifier = Modifier.padding(4.dp))
-                        WeatherText("Скорость ветра: $windSpeed км/ч")
-                        Spacer(modifier = Modifier.padding(4.dp))
-                        WeatherText("Состояние: ${descriptionCode.description}")
-                        LottieAnimation(
-                            modifier = Modifier
-                                .size(120.dp),
-                            composition = weatherComposition,
-                            iterations = LottieConstants.IterateForever
+                        val weatherComposition by rememberLottieComposition(
+                            LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny)
                         )
-
-                        DailyForecastList(dailyForecasts) {
-
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                             contentAlignment = Alignment.Center
+                        )
+                        {
+                            WeatherText("Прогноз погоды на сегодня в городе \n ${city}:")
                         }
+                        Spacer(modifier = Modifier.padding(16.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                WeatherText("$temperature °C")
+                                Spacer(modifier = Modifier.height(4.dp))
+                                WeatherText("༄ $windSpeed км/ч")
+                                Spacer(modifier = Modifier.height(4.dp))
+                                WeatherText(descriptionCode.description)
+                            }
+                            LottieAnimation(
+                                modifier = Modifier
+                                    .size(140.dp),
+                                composition = weatherComposition,
+                                iterations = LottieConstants.IterateForever
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        DailyForecastList(dailyForecasts) { }
 
                     }
                 }
@@ -183,17 +218,33 @@ fun WeatherScreen(navController: NavHostController) {
     }
 }
 
-fun getWeatherDescription(weatherCode: Int?): WeatherInfo {
-    return when (weatherCode) {
-        0 -> WeatherInfo("Ясно", R.raw.weathersunny)
-        1, 2 -> WeatherInfo("Переменная облачность",R.raw.weatherpartlycloudy)
-        3 -> WeatherInfo("Пасмурно", R.raw.weatherwindy)
-        45, 48 -> WeatherInfo("Туман", R.raw.weatherwindy)
-        51, 61 -> WeatherInfo("Небольшой дождь",R.raw.weatherpartlyshower)
-        63, 65 -> WeatherInfo("Сильный дождь", R.raw.rainyicon)
-        71, 73 -> WeatherInfo("Снег",R.raw.weathersnow)
-        95, 96 -> WeatherInfo("Гроза", R.raw.weatherstorm)
-        else -> WeatherInfo("Неизвестно", null)
+fun getWeatherDescription(weatherCode: Int?, isNight : Boolean? = null): WeatherInfo {
+    Log.d("getWeatherDescription", "isNight: ${isNight}")
+    if(isNight == null || isNight == false) {
+        return when (weatherCode) {
+            0 -> WeatherInfo("Ясно", R.raw.weathersunny)
+            1, 2 -> WeatherInfo("Переменная облачность", R.raw.weatherpartlycloudy)
+            3 -> WeatherInfo("Пасмурно", R.raw.weatherwindy)
+            45, 48 -> WeatherInfo("Туман", R.raw.weatherwindy)
+            51, 61 -> WeatherInfo("Небольшой дождь", R.raw.weatherpartlyshower)
+            63, 65 -> WeatherInfo("Сильный дождь", R.raw.rainyicon)
+            71, 73 -> WeatherInfo("Снег", R.raw.weathersnow)
+            95, 96 -> WeatherInfo("Гроза", R.raw.weatherstorm)
+            else -> WeatherInfo("Неизвестно", null)
+        }
+    }
+    else {
+        return when (weatherCode) {
+            0 -> WeatherInfo("Ясно", R.raw.weather_night)
+            1, 2 -> WeatherInfo("Переменная облачность", R.raw.weather_cloudy_night)
+            3 -> WeatherInfo("Пасмурно", R.raw.weather_cloudy_night)
+            45, 48 -> WeatherInfo("Туман", R.raw.weatherwindy)
+            51, 61 -> WeatherInfo("Небольшой дождь", R.raw.weather_rainy_night)
+            63, 65 -> WeatherInfo("Сильный дождь", R.raw.rainyicon)
+            71, 73 -> WeatherInfo("Снег", R.raw.weathersnow)
+            95, 96 -> WeatherInfo("Гроза", R.raw.weatherstorm)
+            else -> WeatherInfo("Неизвестно", null)
+        }
     }
 }
 
@@ -230,9 +281,27 @@ fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    WeatherText(day.dayOfWeek.toString())
+                    val weatherDescription  = getWeatherDescription(day.weatherCode)
+                    val weatherComposition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(weatherDescription.lottieFile ?: R.raw.weathersunny)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        WeatherText(day.dayOfWeek.toString())
+                        LottieAnimation(
+                            modifier = Modifier.size(35.dp),
+                            composition = weatherComposition,
+                            iterations = LottieConstants.IterateForever
+                        )
+                    }
                     Spacer(modifier = Modifier.height(4.dp))
                     WeatherText("${day.tempMax} °C / ${day.tempMin} °C")
+
                 }
             }
         }
@@ -295,21 +364,21 @@ fun DailyForecastListPreview()
                 dayOfWeek = DayOfWeek.SATURDAY,
                 tempMax = 17.8,
                 tempMin = 10.8,
-                weatherCode = 3
+                weatherCode = 3,
             ),
             DayForecast(
                 date = "2025-11-08",
                 dayOfWeek = DayOfWeek.SUNDAY,
                 tempMax = 21.6,
                 tempMin = 8.8,
-                weatherCode = 45
+                weatherCode = 45,
             ),
             DayForecast(
                 date = "2025-11-09",
                 dayOfWeek = DayOfWeek.MONDAY,
                 tempMax = 22.3,
                 tempMin = 12.1,
-                weatherCode = 3
+                weatherCode = 3,
             )
         )
         DailyForecastList(dayForecasts = sampleData) { }

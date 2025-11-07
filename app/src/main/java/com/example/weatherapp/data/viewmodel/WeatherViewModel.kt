@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
 import java.util.Locale
 import java.util.UUID
 
@@ -45,6 +46,10 @@ class WeatherViewModel : ViewModel() {
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
     private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
+    private val _isDay = MutableStateFlow(isDayNow())
+
+
+    val isDay : StateFlow<Boolean> = _isDay
 
     private val _locale = MutableStateFlow(Locale.getDefault())
 
@@ -69,6 +74,13 @@ class WeatherViewModel : ViewModel() {
 
 
     val uiState : StateFlow<WeatherUIState> = _uiState.asStateFlow()
+
+    private fun isDayNow(): Boolean {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        Log.d("isDayNow", hour.toString())
+        return hour in 6..18
+    }
+
 
     fun updateFinePermission(fineGranted: Boolean) {
         _hasFinePermission.value = fineGranted

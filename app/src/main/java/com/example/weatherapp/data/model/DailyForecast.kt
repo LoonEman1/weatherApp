@@ -7,5 +7,5 @@ data class DayForecast(
     val dayOfWeek: DayOfWeek,
     val tempMax : Double,
     val tempMin : Double,
-    val weatherCode : Int
+    val weatherCode : Int?,
 )
