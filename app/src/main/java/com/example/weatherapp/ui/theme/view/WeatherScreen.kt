@@ -2,16 +2,22 @@ package com.example.weatherapp.ui.theme.view
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.activity.compose.LocalActivity
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,41 +26,55 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
+import com.example.weatherapp.data.model.DayForecast
 import com.example.weatherapp.data.model.WeatherInfo
 import com.example.weatherapp.data.viewmodel.WeatherUIState
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
+
+import java.time.DayOfWeek
 
 @Composable
 fun WeatherScreen(navController: NavHostController) {
     val viewModel: WeatherViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
 
+    val locale = LocalConfiguration.current.locales[0]
+    viewModel.setLocale(locale)
+
 
     val hasFinePermission by viewModel.hasFinePermission.collectAsState()
     val hasCoarsePermissions by viewModel.hasCoarsePermission.collectAsState()
     val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
     val city by viewModel.geoCity.collectAsState()
+    val dailyForecasts by viewModel.dailyForecasts.collectAsState()
 
     val context = LocalContext.current
+
 
 
 
@@ -120,44 +140,17 @@ fun WeatherScreen(navController: NavHostController) {
             ) {
                 when (uiState) {
                     is WeatherUIState.Loading -> {
-                        Text(
-                            text = "Загрузка данных...",
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily.SansSerif,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = Offset(2f, 2f),
-                                    blurRadius = 6f
-                                )
-                            )
-                        )
+                       WeatherText("Загрузка данных...")
                     }
 
                     is WeatherUIState.Error -> {
                         val message = (uiState as WeatherUIState.Error).message
-                        Text(
-                            text = "Ошибка: $message",
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily.SansSerif,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = Offset(2f, 2f),
-                                    blurRadius = 6f
-                                )
-                            )
-                        )
+                        WeatherText("Ошибка: $message")
                     }
 
                     is WeatherUIState.Success -> {
                         val weather = (uiState as WeatherUIState.Success).weatherResponse
+                        viewModel.updateWeather(weather)
                         val temperature = weather.current?.temperature
                         val windSpeed = weather.current?.windSpeed
                         val weatherCode = weather.current?.weatherCode
@@ -165,78 +158,24 @@ fun WeatherScreen(navController: NavHostController) {
 
                         val weatherComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny))
 
-                        Text(
-
-                            text = "Прогноз погоды на сегодня в городе \n ${city}:",
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .fillMaxWidth(),
-                            fontSize = 22.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily.SansSerif,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = Offset(2f, 2f),
-                                    blurRadius = 6f
-                                )
-                            )
-                        )
+                        WeatherText("Прогноз погоды на сегодня в городе \n ${city}:",)
                         Spacer(modifier = Modifier.padding(16.dp))
-                        Text(
-                            text = "Температура: $temperature °C",
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily.SansSerif,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = Offset(2f, 2f),
-                                    blurRadius = 6f
-                                )
-                            )
-                        )
+                        WeatherText("Температура: $temperature °C")
                         Spacer(modifier = Modifier.padding(4.dp))
-                        Text(
-                            text = "Скорость ветра: $windSpeed км/ч",
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily.SansSerif,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = Offset(2f, 2f),
-                                    blurRadius = 6f
-                                )
-                            )
-                        )
+                        WeatherText("Скорость ветра: $windSpeed км/ч")
                         Spacer(modifier = Modifier.padding(4.dp))
-
-                        Text(
-                            text = "Состояние: ${descriptionCode.description}",
-                            fontSize = 20.sp,
-                            textAlign = TextAlign.Center,
-                            fontFamily = FontFamily.SansSerif,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.8f),
-                                    offset = Offset(2f, 2f),
-                                    blurRadius = 6f
-                                )
-                            )
-                        )
+                        WeatherText("Состояние: ${descriptionCode.description}")
                         LottieAnimation(
+                            modifier = Modifier
+                                .size(120.dp),
                             composition = weatherComposition,
-                            iterations = LottieConstants.IterateForever,
+                            iterations = LottieConstants.IterateForever
                         )
+
+                        DailyForecastList(dailyForecasts) {
+
+                        }
+
                     }
                 }
             }
@@ -258,6 +197,67 @@ fun getWeatherDescription(weatherCode: Int?): WeatherInfo {
     }
 }
 
+
+@Composable
+fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+    ) {
+        items(dayForecasts) { day ->
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .blur(6.dp)
+                )
+
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    WeatherText(day.dayOfWeek.toString())
+                    Spacer(modifier = Modifier.height(4.dp))
+                    WeatherText("${day.tempMax} °C / ${day.tempMin} °C")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun WeatherText(text : String) {
+    Text(
+        text = text,
+        fontSize = 20.sp,
+        textAlign = TextAlign.Center,
+        fontFamily = FontFamily.SansSerif,
+        color = Color.White,
+        fontWeight = FontWeight.Black,
+        style = TextStyle(
+            shadow = Shadow(
+                color = Color.Black.copy(alpha = 0.8f),
+                offset = Offset(2f, 2f),
+                blurRadius = 6f
+            )
+        )
+    )
+}
+
 @Composable
 fun PermissionRequester(onPermissionResult: (Boolean) -> Unit): () -> Unit {
     val launcher = rememberLauncherForActivityResult(
@@ -274,3 +274,46 @@ fun PermissionRequester(onPermissionResult: (Boolean) -> Unit): () -> Unit {
     )))}
 }
 
+@Preview(showBackground = true)
+@Composable
+fun WeatherScreenPreview()
+{
+    val navController = rememberNavController()
+    WeatherScreen(navController = navController)
+}
+
+@Preview(showBackground = true)
+@Composable
+fun DailyForecastListPreview()
+{
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+    {
+        val sampleData =
+            listOf(
+            DayForecast(
+                date = "2025-11-07",
+                dayOfWeek = DayOfWeek.SATURDAY,
+                tempMax = 17.8,
+                tempMin = 10.8,
+                weatherCode = 3
+            ),
+            DayForecast(
+                date = "2025-11-08",
+                dayOfWeek = DayOfWeek.SUNDAY,
+                tempMax = 21.6,
+                tempMin = 8.8,
+                weatherCode = 45
+            ),
+            DayForecast(
+                date = "2025-11-09",
+                dayOfWeek = DayOfWeek.MONDAY,
+                tempMax = 22.3,
+                tempMin = 12.1,
+                weatherCode = 3
+            )
+        )
+        DailyForecastList(dayForecasts = sampleData) { }
+    } else {
+        TODO("VERSION.SDK_INT < O")
+    }
+}

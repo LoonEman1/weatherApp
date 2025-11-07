@@ -19,5 +19,5 @@ data class WeatherResponse(
     val hourly: HourlyWeather?,
 
     @SerializedName("daily")
-    val daily: DailyWeather?
+    val daily: WeatherForecast?
 )

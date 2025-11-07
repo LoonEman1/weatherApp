@@ -1,6 +1,7 @@
 package com.example.weatherapp.data.viewmodel
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.example.weatherapp.data.model.DayForecast
 import com.example.weatherapp.data.model.GeoData
 import com.example.weatherapp.data.model.WeatherResponse
 import com.example.weatherapp.data.repository.WeatherRepository
@@ -15,9 +17,15 @@ import com.example.weatherapp.data.workers.LocationWorker
 import com.example.weatherapp.data.workers.WorkManagerController
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 
 sealed class WeatherUIState {
@@ -36,12 +44,25 @@ class WeatherViewModel : ViewModel() {
     private val _hasCoarsePermission = MutableStateFlow(false)
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
+    private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
+
+    private val _locale = MutableStateFlow(Locale.getDefault())
+
 
     val geoCity: StateFlow<String?> = _geoCity.asStateFlow()
 
     val hasFinePermission : StateFlow<Boolean> = _hasFinePermission.asStateFlow()
     val hasCoarsePermission : StateFlow<Boolean> = _hasCoarsePermission.asStateFlow()
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
+    val weatherResponse: StateFlow<WeatherResponse?> = _weatherResponse
+    val locale: StateFlow<Locale> = _locale
+
+
+    val dailyForecasts: StateFlow<List<DayForecast>> = _weatherResponse.map { weather ->
+        weather?.let { parseDailyForecasts(it) } ?: emptyList()
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+
 
     private var isWorkerStarted = false
 
@@ -68,6 +89,14 @@ class WeatherViewModel : ViewModel() {
 
     fun updateUiState(uiState: WeatherUIState) {
         _uiState.value = uiState
+    }
+
+    fun updateWeather(newWeather: WeatherResponse) {
+        _weatherResponse.value = newWeather
+    }
+
+    fun setLocale(locale: Locale) {
+        _locale.value = locale
     }
 
     fun startLocationWorker(context : Context) {
@@ -110,5 +139,44 @@ class WeatherViewModel : ViewModel() {
                     }
                 }
             }
+    }
+
+    fun parseDailyForecasts(weather : WeatherResponse) : List<DayForecast>? {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        {
+            val formatter =  DateTimeFormatter.ofPattern("yyyy-MM-dd", locale.value)
+            val daily = weather.daily ?: return emptyList()
+
+            val count = listOf(
+                daily.temperatureMax.size,
+                daily.temperatureMin.size,
+                daily.time.size,
+                daily.weatherCode.size
+            ).minOrNull() ?: 0
+
+            val list = mutableListOf<DayForecast>()
+
+            for (i in 0 until count) {
+                val dateStr = daily.time[i]
+                val date = LocalDate.parse(dateStr, formatter)
+                val dayOfWeek = date.dayOfWeek
+                val tempMax = daily.temperatureMax[i]
+                val tempMin = daily.temperatureMin[i]
+                val weatherCode = daily.weatherCode[i]
+
+                list.add(DayForecast(
+                    date = dateStr,
+                    dayOfWeek = dayOfWeek,
+                    tempMax = tempMax,
+                    tempMin = tempMin,
+                    weatherCode = weatherCode
+                ))
+            }
+            return list
+        }
+        else {
+            TODO("VERSION.SDK_INT < O")
+        }
     }
 }
