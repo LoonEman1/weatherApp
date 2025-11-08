@@ -3,8 +3,11 @@ package com.example.weatherapp.data.viewmodel
 import android.content.Context
 import android.os.Build
 import android.util.Log
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.example.weatherapp.R
 import com.example.weatherapp.data.model.DayForecast
@@ -14,6 +17,7 @@ import com.example.weatherapp.data.model.WeatherUIData
 import com.example.weatherapp.data.workers.WorkManagerController
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -122,35 +126,53 @@ class WeatherViewModel : ViewModel() {
 
     fun observeWorkChain(context: Context, controller: WorkManagerController, uniqueWorkName : String) {
         Log.d("WeatherViewModel", "Observe WorkManager for chain $uniqueWorkName")
-        WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("weather_work_chain")
-            .observeForever { workInfos ->
-                val locationInfo = workInfos.find { it.id == controller.getLocationWorkId() }
-                locationInfo?.let {
-                    Log.d("WeatherViewModel", "LocationWorker finished: state=${it.state}")
-                    if (it.state.isFinished) {
-                        val city = it.outputData.getString("city")
-                        if (city != null) {
-                            _geoCity.value = city
+
+        viewModelScope.launch {
+            WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("weather_work_chain")
+                .asFlow()
+                .collect { workInfos ->
+                    val locationInfo = workInfos.find { it.id == controller.getLocationWorkId() }
+                    locationInfo?.let {
+                        Log.d("WeatherViewModel", "LocationWorker finished: state=${it.state}")
+                        if (it.state.isFinished) {
+                            if(it.state == WorkInfo.State.FAILED) {
+                                controller.cancelAll()
+                            }
+                            val city = it.outputData.getString("city")
+                            if (city != null) {
+                                _geoCity.value = city
+                            }
+                        }
+                    }
+
+                    val weatherInfo = workInfos.find { it.id == controller.getUploadWorkId() }
+                    weatherInfo?.let {
+                        Log.d("WeatherViewModel", "WeatherWorker finished: state=${it.state}")
+                        if (it.state.isFinished) {
+                            if(it.state == WorkInfo.State.FAILED) {
+                                controller.cancelAll()
+                            }
+                            val weatherJson = it.outputData.getString("weather_data")
+                            val gson = Gson()
+                            Log.d("WeatherViewModel", "Weather JSON from WeatherWorker: $weatherJson")
+                            weatherJson?.let { json ->
+                                val weatherResponseObj = gson.fromJson(json, WeatherResponse::class.java)
+                                _uiState.value = WeatherUIState.Success(weatherResponseObj)
+                                _weatherResponse.value = weatherResponseObj
+                            }
+                        }
+                    }
+
+                    if (workInfos.isEmpty()) {
+                        Log.d("WeatherViewModel", "All workers removed!")
+                    } else {
+                        Log.d("WeatherViewModel", "Current workers: ${workInfos.size}")
+                        workInfos.forEach { workInfo ->
+                            Log.d("WeatherViewModel", "  - ${workInfo.id.toString().substring(0, 8)}: ${workInfo.state}")
                         }
                     }
                 }
-
-                val weatherInfo = workInfos.find { it.id == controller.getUploadWorkId() }
-                weatherInfo?.let {
-                    Log.d("WeatherViewModel", "WeatherWorker finished: state=${it.state}")
-                    if (it.state.isFinished) {
-                        val weatherJson = it.outputData.getString("weather_data")
-                        val gson = Gson()
-
-                        Log.d("WeatherViewModel", "Weather JSON from WeatherWorker: $weatherJson")
-                        weatherJson?.let { json ->
-                            val weatherResponseObj = gson.fromJson(json, WeatherResponse::class.java)
-                            _uiState.value = WeatherUIState.Success(weatherResponseObj)
-                            _weatherResponse.value = weatherResponseObj
-                        }
-                    }
-                }
-            }
+        }
     }
 
     fun getWeatherDescription(weatherCode: Int?, isNight : Boolean? = null): WeatherDescription {

@@ -10,6 +10,7 @@ import com.google.gson.Gson
 
 class WeatherWorker(context : Context, workerParameters: WorkerParameters) : CoroutineWorker(context, workerParameters) {
     override suspend fun doWork(): Result {
+        Log.d("WeatherWorker", "WeatherWorker runAttemptCount $runAttemptCount")
 
         if (runAttemptCount >= 5) {
             Log.d("WeatherWorker", "Maximum retry attempts reached, giving up")

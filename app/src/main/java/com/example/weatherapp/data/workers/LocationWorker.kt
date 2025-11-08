@@ -14,7 +14,7 @@ class LocationWorker(
     context: Context, workerParameters: WorkerParameters
     ) : CoroutineWorker(context, workerParameters) {
     override suspend fun doWork(): Result {
-
+        Log.d("LocationWorker", "LocationWorker runAttemptCount $runAttemptCount")
         return withContext(Dispatchers.IO)
         {
             if (runAttemptCount >= 5) {
