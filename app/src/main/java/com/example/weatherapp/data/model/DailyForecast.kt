@@ -8,4 +8,5 @@ data class DayForecast(
     val tempMax : Double,
     val tempMin : Double,
     val weatherCode : Int?,
+    val weatherDescription: WeatherDescription? = null
 )

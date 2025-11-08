@@ -5,15 +5,12 @@ import android.os.Build
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.OneTimeWorkRequest
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import com.example.weatherapp.R
+import com.example.weatherapp.data.model.CurrentWeatherForecastUI
 import com.example.weatherapp.data.model.DayForecast
-import com.example.weatherapp.data.model.GeoData
+import com.example.weatherapp.data.model.WeatherDescription
 import com.example.weatherapp.data.model.WeatherResponse
-import com.example.weatherapp.data.repository.WeatherRepository
-import com.example.weatherapp.data.workers.LocationWorker
 import com.example.weatherapp.data.workers.WorkManagerController
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,12 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
-import java.util.UUID
 
 sealed class WeatherUIState {
     object Loading : WeatherUIState()
@@ -36,7 +31,6 @@ sealed class WeatherUIState {
 }
 
 class WeatherViewModel : ViewModel() {
-    private val repository = WeatherRepository()
 
     private val _uiState = MutableStateFlow<WeatherUIState>(WeatherUIState.Loading)
 
@@ -46,6 +40,7 @@ class WeatherViewModel : ViewModel() {
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
     private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
+
     private val _isDay = MutableStateFlow(isDayNow())
 
 
@@ -64,10 +59,21 @@ class WeatherViewModel : ViewModel() {
 
 
     val dailyForecasts: StateFlow<List<DayForecast>> = _weatherResponse.map { weather ->
-        weather?.let { parseDailyForecasts(it) } ?: emptyList()
+        weather?.let {
+            parseDailyForecasts(it)
+
+        } ?: emptyList()
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-
+    val currentWeatherForecastUI: StateFlow<CurrentWeatherForecastUI> = _weatherResponse.map { weather ->
+        weather?.let {
+            val description = getWeatherDescription(weather.current?.weatherCode, !_isDay.value)
+            CurrentWeatherForecastUI(
+            currentWeather = it.current,
+                weatherDescription = description
+            )
+        } ?: CurrentWeatherForecastUI()
+    }.stateIn(viewModelScope, SharingStarted.Lazily, CurrentWeatherForecastUI())
 
     private var isWorkerStarted = false
 
@@ -97,14 +103,6 @@ class WeatherViewModel : ViewModel() {
 
     fun updatePermissionStatus(coarseStatus: Boolean, fineStatus : Boolean) {
         _hasLocationPermission.value = coarseStatus or fineStatus
-    }
-
-    fun updateUiState(uiState: WeatherUIState) {
-        _uiState.value = uiState
-    }
-
-    fun updateWeather(newWeather: WeatherResponse) {
-        _weatherResponse.value = newWeather
     }
 
     fun setLocale(locale: Locale) {
@@ -147,11 +145,43 @@ class WeatherViewModel : ViewModel() {
                         weatherJson?.let { json ->
                             val weatherResponseObj = gson.fromJson(json, WeatherResponse::class.java)
                             _uiState.value = WeatherUIState.Success(weatherResponseObj)
+                            _weatherResponse.value = weatherResponseObj
                         }
                     }
                 }
             }
     }
+
+    fun getWeatherDescription(weatherCode: Int?, isNight : Boolean? = null): WeatherDescription {
+        Log.d("getWeatherDescription", "isNight: ${isNight}")
+        if(isNight == null || isNight == false) {
+            return when (weatherCode) {
+                0 -> WeatherDescription("Ясно", R.raw.weathersunny)
+                1, 2 -> WeatherDescription("Переменная облачность", R.raw.weatherpartlycloudy)
+                3 -> WeatherDescription("Пасмурно", R.raw.weatherwindy)
+                45, 48 -> WeatherDescription("Туман", R.raw.weatherwindy)
+                51, 61 -> WeatherDescription("Небольшой дождь", R.raw.weatherpartlyshower)
+                63, 65 -> WeatherDescription("Сильный дождь", R.raw.rainyicon)
+                71, 73 -> WeatherDescription("Снег", R.raw.weathersnow)
+                95, 96 -> WeatherDescription("Гроза", R.raw.weatherstorm)
+                else -> WeatherDescription("Неизвестно", null)
+            }
+        }
+        else {
+            return when (weatherCode) {
+                0 -> WeatherDescription("Ясно", R.raw.weather_night)
+                1, 2 -> WeatherDescription("Переменная облачность", R.raw.weather_cloudy_night)
+                3 -> WeatherDescription("Пасмурно", R.raw.weather_cloudy_night)
+                45, 48 -> WeatherDescription("Туман", R.raw.weatherwindy)
+                51, 61 -> WeatherDescription("Небольшой дождь", R.raw.weather_rainy_night)
+                63, 65 -> WeatherDescription("Сильный дождь", R.raw.rainyicon)
+                71, 73 -> WeatherDescription("Снег", R.raw.weathersnow)
+                95, 96 -> WeatherDescription("Гроза", R.raw.weatherstorm)
+                else -> WeatherDescription("Неизвестно", null)
+            }
+        }
+    }
+
 
     fun parseDailyForecasts(weather : WeatherResponse) : List<DayForecast>? {
 
@@ -176,13 +206,14 @@ class WeatherViewModel : ViewModel() {
                 val tempMax = daily.temperatureMax[i]
                 val tempMin = daily.temperatureMin[i]
                 val weatherCode = daily.weatherCode[i]
-
+                val description = getWeatherDescription(weatherCode)
                 list.add(DayForecast(
                     date = dateStr,
                     dayOfWeek = dayOfWeek,
                     tempMax = tempMax,
                     tempMin = tempMin,
-                    weatherCode = weatherCode
+                    weatherCode = weatherCode,
+                    weatherDescription = description
                 ))
             }
             return list

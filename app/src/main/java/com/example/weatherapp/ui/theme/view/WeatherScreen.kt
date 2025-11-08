@@ -34,7 +34,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalConfiguration
@@ -56,7 +55,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.data.model.DayForecast
-import com.example.weatherapp.data.model.WeatherInfo
+import com.example.weatherapp.data.model.WeatherDescription
 import com.example.weatherapp.data.viewmodel.WeatherUIState
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
 
@@ -76,6 +75,7 @@ fun WeatherScreen(navController: NavHostController) {
     val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
     val city by viewModel.geoCity.collectAsState()
     val dailyForecasts by viewModel.dailyForecasts.collectAsState()
+    val currentWeatherForecastUI by viewModel.currentWeatherForecastUI.collectAsState()
 
     val isDay by viewModel.isDay.collectAsState()
 
@@ -163,15 +163,13 @@ fun WeatherScreen(navController: NavHostController) {
                     }
 
                     is WeatherUIState.Success -> {
-                        val weather = (uiState as WeatherUIState.Success).weatherResponse
-                        viewModel.updateWeather(weather)
-                        val temperature = weather.current?.temperature
-                        val windSpeed = weather.current?.windSpeed
-                        val weatherCode = weather.current?.weatherCode
-                        val descriptionCode = getWeatherDescription(weatherCode, !isDay)
+                        val temperature = currentWeatherForecastUI.currentWeather?.temperature
+                        val windSpeed = currentWeatherForecastUI.currentWeather?.windSpeed
+                        val weatherCode = currentWeatherForecastUI.currentWeather?.weatherCode
+                        val description = currentWeatherForecastUI.weatherDescription
 
                         val weatherComposition by rememberLottieComposition(
-                            LottieCompositionSpec.RawRes(descriptionCode.lottieFile ?: R.raw.weathersunny)
+                            LottieCompositionSpec.RawRes(description?.lottieFile ?: R.raw.weathersunny)
                         )
                         Box(
                             modifier = Modifier
@@ -197,7 +195,7 @@ fun WeatherScreen(navController: NavHostController) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 WeatherText("༄ $windSpeed км/ч")
                                 Spacer(modifier = Modifier.height(4.dp))
-                                WeatherText(descriptionCode.description)
+                                WeatherText(description?.description.toString())
                             }
                             LottieAnimation(
                                 modifier = Modifier
@@ -214,36 +212,6 @@ fun WeatherScreen(navController: NavHostController) {
                     }
                 }
             }
-        }
-    }
-}
-
-fun getWeatherDescription(weatherCode: Int?, isNight : Boolean? = null): WeatherInfo {
-    Log.d("getWeatherDescription", "isNight: ${isNight}")
-    if(isNight == null || isNight == false) {
-        return when (weatherCode) {
-            0 -> WeatherInfo("Ясно", R.raw.weathersunny)
-            1, 2 -> WeatherInfo("Переменная облачность", R.raw.weatherpartlycloudy)
-            3 -> WeatherInfo("Пасмурно", R.raw.weatherwindy)
-            45, 48 -> WeatherInfo("Туман", R.raw.weatherwindy)
-            51, 61 -> WeatherInfo("Небольшой дождь", R.raw.weatherpartlyshower)
-            63, 65 -> WeatherInfo("Сильный дождь", R.raw.rainyicon)
-            71, 73 -> WeatherInfo("Снег", R.raw.weathersnow)
-            95, 96 -> WeatherInfo("Гроза", R.raw.weatherstorm)
-            else -> WeatherInfo("Неизвестно", null)
-        }
-    }
-    else {
-        return when (weatherCode) {
-            0 -> WeatherInfo("Ясно", R.raw.weather_night)
-            1, 2 -> WeatherInfo("Переменная облачность", R.raw.weather_cloudy_night)
-            3 -> WeatherInfo("Пасмурно", R.raw.weather_cloudy_night)
-            45, 48 -> WeatherInfo("Туман", R.raw.weatherwindy)
-            51, 61 -> WeatherInfo("Небольшой дождь", R.raw.weather_rainy_night)
-            63, 65 -> WeatherInfo("Сильный дождь", R.raw.rainyicon)
-            71, 73 -> WeatherInfo("Снег", R.raw.weathersnow)
-            95, 96 -> WeatherInfo("Гроза", R.raw.weatherstorm)
-            else -> WeatherInfo("Неизвестно", null)
         }
     }
 }
@@ -281,9 +249,8 @@ fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
                     modifier = Modifier.padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val weatherDescription  = getWeatherDescription(day.weatherCode)
                     val weatherComposition by rememberLottieComposition(
-                        LottieCompositionSpec.RawRes(weatherDescription.lottieFile ?: R.raw.weathersunny)
+                        LottieCompositionSpec.RawRes(day.weatherDescription?.lottieFile ?: R.raw.weathersunny)
                     )
 
                     Row(

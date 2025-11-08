@@ -1,8 +1,6 @@
 package com.example.weatherapp.data.model
 
-import android.graphics.drawable.Icon
-
-data class WeatherInfo(
+data class WeatherDescription(
     val description : String,
     val lottieFile : Int?
 )
