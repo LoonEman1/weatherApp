@@ -37,6 +37,10 @@ class WorkManagerController(private val context : Context) {
         WorkManager.getInstance(context).cancelUniqueWork("weather_work_chain")
     }
 
+    fun pruneAllFinishedWork() {
+        WorkManager.getInstance(context).pruneWork()
+    }
+
     fun getLocationWorkId(): UUID = locationWorkId
     fun getUploadWorkId(): UUID = uploadWorkId
 }

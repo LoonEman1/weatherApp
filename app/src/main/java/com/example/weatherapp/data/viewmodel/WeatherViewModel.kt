@@ -3,7 +3,6 @@ package com.example.weatherapp.data.viewmodel
 import android.content.Context
 import android.os.Build
 import android.util.Log
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
@@ -17,13 +16,9 @@ import com.example.weatherapp.data.model.WeatherUIData
 import com.example.weatherapp.data.workers.WorkManagerController
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -138,6 +133,7 @@ class WeatherViewModel : ViewModel() {
                             if(it.state == WorkInfo.State.FAILED) {
                                 controller.cancelAll()
                             }
+                            controller.pruneAllFinishedWork()
                             val city = it.outputData.getString("city")
                             if (city != null) {
                                 _geoCity.value = city
@@ -152,6 +148,7 @@ class WeatherViewModel : ViewModel() {
                             if(it.state == WorkInfo.State.FAILED) {
                                 controller.cancelAll()
                             }
+                            controller.pruneAllFinishedWork()
                             val weatherJson = it.outputData.getString("weather_data")
                             val gson = Gson()
                             Log.d("WeatherViewModel", "Weather JSON from WeatherWorker: $weatherJson")

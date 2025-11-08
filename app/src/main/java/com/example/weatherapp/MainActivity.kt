@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
         Log.d("MainActivity", "Cancelling weather_work_chain...")
         workManager.cancelUniqueWork("weather_work_chain")
+        workManager.pruneWork()
 
         Log.d("MainActivity", "After cancelUniqueWork: Checking status")
         val workInfosAfter = workManager.getWorkInfosForUniqueWork("weather_work_chain").get()
