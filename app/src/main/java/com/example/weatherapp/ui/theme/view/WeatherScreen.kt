@@ -81,20 +81,20 @@ fun WeatherScreen(navController: NavHostController) {
     val context = LocalContext.current
 
 
-
-
-    if (!hasFinePermission || !hasCoarsePermissions) {
-        val fineGranted = ContextCompat.checkSelfPermission(
-            LocalContext.current,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            LocalContext.current,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        viewModel.updateFinePermission(fineGranted)
-        viewModel.updateCoarsePermission(coarseGranted)
-        viewModel.updatePermissionStatus(fineGranted, coarseGranted)
+    LaunchedEffect(Unit) {
+        if (!hasFinePermission || !hasCoarsePermissions) {
+            val fineGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val coarseGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            viewModel.updateFinePermission(fineGranted)
+            viewModel.updateCoarsePermission(coarseGranted)
+            viewModel.updatePermissionStatus(fineGranted, coarseGranted)
+        }
     }
 
     val backgroundRes = if (isDay) {
@@ -109,16 +109,12 @@ fun WeatherScreen(navController: NavHostController) {
         viewModel.updatePermissionStatus(granted)
     }
 
-
-    LaunchedEffect(hasLocationPermission) {
-        if (!hasLocationPermission) {
-            requestPermissions()
-        }
-    }
-
     LaunchedEffect(hasLocationPermission) {
         if(hasLocationPermission) {
             viewModel.startLocationWorker(context)
+        }
+        else {
+            requestPermissions()
         }
     }
 

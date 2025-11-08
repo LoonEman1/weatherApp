@@ -19,7 +19,7 @@ class LocationWorker(
         {
             if (runAttemptCount >= 5) {
                 Log.d("LocationWorker", "Maximum retry attempts reached, giving up")
-                Result.failure()
+                return@withContext Result.failure()
             }
             val geoManager = GeoManager()
 
@@ -27,7 +27,7 @@ class LocationWorker(
 
             if (geoData == null) {
                 Log.d("LocationWorker", "Work ${id}, GEODATA IS NULL")
-                Result.retry()
+                return@withContext Result.retry()
             }
             else {
                 Log.d("LocationWorker", geoData.city)

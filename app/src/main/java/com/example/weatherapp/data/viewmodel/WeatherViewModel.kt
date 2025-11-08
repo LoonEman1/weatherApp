@@ -82,7 +82,6 @@ class WeatherViewModel : ViewModel() {
     }
 
 
-    private var isWorkerStarted = false
 
     val uiState : StateFlow<WeatherUIState> = _uiState.asStateFlow()
 
@@ -115,13 +114,10 @@ class WeatherViewModel : ViewModel() {
     }
 
     fun startLocationWorker(context : Context) {
-        if(!isWorkerStarted) {
-            Log.d("WeatherViewModel", "Start chain of workers through WorkManagerController")
-            isWorkerStarted = true
-            val workRequest = WorkManagerController(context)
-            workRequest.startLocationAndWeatherChain()
-            observeWorkChain(context, workRequest, "weather_work_chain")
-        }
+        Log.d("WeatherViewModel", "Start chain of workers through WorkManagerController")
+        val workRequest = WorkManagerController(context)
+        workRequest.startLocationAndWeatherChain()
+        observeWorkChain(context, workRequest, "weather_work_chain")
     }
 
     fun observeWorkChain(context: Context, controller: WorkManagerController, uniqueWorkName : String) {
