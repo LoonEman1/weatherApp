@@ -74,8 +74,7 @@ fun WeatherScreen(navController: NavHostController) {
     val hasCoarsePermissions by viewModel.hasCoarsePermission.collectAsState()
     val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
     val city by viewModel.geoCity.collectAsState()
-    val dailyForecasts by viewModel.dailyForecasts.collectAsState()
-    val currentWeatherForecastUI by viewModel.currentWeatherForecastUI.collectAsState()
+    val weatherUIData by viewModel.weatherUIData.collectAsState()
 
     val isDay by viewModel.isDay.collectAsState()
 
@@ -163,10 +162,9 @@ fun WeatherScreen(navController: NavHostController) {
                     }
 
                     is WeatherUIState.Success -> {
-                        val temperature = currentWeatherForecastUI.currentWeather?.temperature
-                        val windSpeed = currentWeatherForecastUI.currentWeather?.windSpeed
-                        val weatherCode = currentWeatherForecastUI.currentWeather?.weatherCode
-                        val description = currentWeatherForecastUI.weatherDescription
+                        val temperature = weatherUIData.currentWeather?.temperature
+                        val windSpeed = weatherUIData.currentWeather?.windSpeed
+                        val description = weatherUIData.currentWeatherDescription
 
                         val weatherComposition by rememberLottieComposition(
                             LottieCompositionSpec.RawRes(description?.lottieFile ?: R.raw.weathersunny)
@@ -207,7 +205,7 @@ fun WeatherScreen(navController: NavHostController) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        DailyForecastList(dailyForecasts) { }
+                        DailyForecastList(weatherUIData.dailyForecasts) { }
 
                     }
                 }

@@ -7,18 +7,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.WorkManager
 import com.example.weatherapp.R
-import com.example.weatherapp.data.model.CurrentWeatherForecastUI
 import com.example.weatherapp.data.model.DayForecast
 import com.example.weatherapp.data.model.WeatherDescription
 import com.example.weatherapp.data.model.WeatherResponse
+import com.example.weatherapp.data.model.WeatherUIData
 import com.example.weatherapp.data.workers.WorkManagerController
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -40,6 +43,7 @@ class WeatherViewModel : ViewModel() {
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
     private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
+    private val _weatherUIData = MutableStateFlow(WeatherUIData())
 
     private val _isDay = MutableStateFlow(isDayNow())
 
@@ -54,30 +58,31 @@ class WeatherViewModel : ViewModel() {
     val hasFinePermission : StateFlow<Boolean> = _hasFinePermission.asStateFlow()
     val hasCoarsePermission : StateFlow<Boolean> = _hasCoarsePermission.asStateFlow()
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
-    val weatherResponse: StateFlow<WeatherResponse?> = _weatherResponse
+    val weatherResponse: StateFlow<WeatherResponse?> = _weatherResponse.asStateFlow()
+    val weatherUIData: StateFlow<WeatherUIData> = _weatherUIData.asStateFlow()
+
     val locale: StateFlow<Locale> = _locale
 
+    init {
+        viewModelScope.launch {
+            _weatherResponse.collect { weather ->
+                if (weather != null) {
+                    val daily = parseDailyForecasts(weather)
+                    val currentDesc = getWeatherDescription(weather.current?.weatherCode, !_isDay.value)
+                    _weatherUIData.value = WeatherUIData(
+                        currentWeather = weather.current,
+                        dailyForecasts = daily,
+                        currentWeatherDescription = currentDesc
+                    )
+                } else {
+                    _weatherUIData.value = WeatherUIData()
+                }
+            }
+        }
+    }
 
-    val dailyForecasts: StateFlow<List<DayForecast>> = _weatherResponse.map { weather ->
-        weather?.let {
-            parseDailyForecasts(it)
-
-        } ?: emptyList()
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    val currentWeatherForecastUI: StateFlow<CurrentWeatherForecastUI> = _weatherResponse.map { weather ->
-        weather?.let {
-            val description = getWeatherDescription(weather.current?.weatherCode, !_isDay.value)
-            CurrentWeatherForecastUI(
-            currentWeather = it.current,
-                weatherDescription = description
-            )
-        } ?: CurrentWeatherForecastUI()
-    }.stateIn(viewModelScope, SharingStarted.Lazily, CurrentWeatherForecastUI())
 
     private var isWorkerStarted = false
-
-
 
     val uiState : StateFlow<WeatherUIState> = _uiState.asStateFlow()
 
@@ -183,12 +188,13 @@ class WeatherViewModel : ViewModel() {
     }
 
 
-    fun parseDailyForecasts(weather : WeatherResponse) : List<DayForecast>? {
+   suspend fun parseDailyForecasts(weather : WeatherResponse) : List<DayForecast> = withContext(
+       Dispatchers.Default) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         {
             val formatter =  DateTimeFormatter.ofPattern("yyyy-MM-dd", locale.value)
-            val daily = weather.daily ?: return emptyList()
+            val daily = weather.daily ?: return@withContext emptyList()
 
             val count = listOf(
                 daily.temperatureMax.size,
@@ -216,7 +222,7 @@ class WeatherViewModel : ViewModel() {
                     weatherDescription = description
                 ))
             }
-            return list
+            return@withContext list
         }
         else {
             TODO("VERSION.SDK_INT < O")
