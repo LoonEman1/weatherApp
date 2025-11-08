@@ -25,7 +25,7 @@ class LocationWorker(
 
             val geoData = geoManager.updateLastKnownLocation(applicationContext)
 
-            if (geoData == null) {
+            if (geoData == null || geoData.city == "Unknown(no internet)") {
                 Log.d("LocationWorker", "Work ${id}, GEODATA IS NULL")
                 return@withContext Result.retry()
             }

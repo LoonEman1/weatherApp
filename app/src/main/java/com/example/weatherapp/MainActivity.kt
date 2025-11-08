@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import androidx.work.WorkManager
 import com.example.weatherapp.ui.theme.navigation.NavigationGraph
 
 class MainActivity : ComponentActivity() {
@@ -35,5 +36,10 @@ class MainActivity : ComponentActivity() {
 
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        WorkManager.getInstance(this.applicationContext).cancelUniqueWork("weather_work_chain")
     }
 }

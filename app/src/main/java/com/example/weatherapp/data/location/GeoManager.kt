@@ -103,9 +103,15 @@ class GeoManager() {
         context: Context,
         locale: java.util.Locale
     ): GeoData {
-        val geocoder = Geocoder(context, locale)
-        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-        val city = if (addresses != null && addresses.isNotEmpty()) addresses[0].locality else "unknown"
-        return GeoData(location.latitude, location.longitude, city)
+        try {
+            val geocoder = Geocoder(context, locale)
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            val city =
+                if (addresses != null && addresses.isNotEmpty()) addresses[0].locality else "unknown"
+            return GeoData(location.latitude, location.longitude, city)
+        } catch(e: Exception) {
+            Log.d("GeoManager", "Geocoding failed", e)
+            return GeoData(location.latitude, location.longitude, "Unknown(no internet)")
+        }
     }
 }
