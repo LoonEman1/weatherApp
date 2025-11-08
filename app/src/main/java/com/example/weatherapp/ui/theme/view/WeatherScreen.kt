@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -55,7 +56,6 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
 import com.example.weatherapp.data.model.DayForecast
-import com.example.weatherapp.data.model.WeatherDescription
 import com.example.weatherapp.data.viewmodel.WeatherUIState
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
 
@@ -141,8 +141,8 @@ fun WeatherScreen(navController: NavHostController) {
             LottieAnimation(
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
-                modifier = Modifier.fillMaxHeight()
-                    .scale(1.4f),
+                modifier = Modifier.fillMaxHeight(),
+                contentScale = ContentScale.FillBounds,
                 speed = 0.6f
             )
             Column(
