@@ -123,7 +123,7 @@ class WeatherViewModel : ViewModel() {
         Log.d("WeatherViewModel", "Observe WorkManager for chain $uniqueWorkName")
 
         viewModelScope.launch {
-            WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("weather_work_chain")
+            WorkManager.getInstance(context.applicationContext).getWorkInfosForUniqueWorkLiveData("weather_work_chain")
                 .asFlow()
                 .collect { workInfos ->
                     val locationInfo = workInfos.find { it.id == controller.getLocationWorkId() }

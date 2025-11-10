@@ -3,7 +3,6 @@ package com.example.weatherapp.ui.theme.view
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -32,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -44,6 +42,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -55,7 +54,10 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.weatherapp.R
+import com.example.weatherapp.data.model.CurrentWeather
 import com.example.weatherapp.data.model.DayForecast
+import com.example.weatherapp.data.model.WeatherDescription
+import com.example.weatherapp.data.model.WeatherUIData
 import com.example.weatherapp.data.viewmodel.WeatherUIState
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
 
@@ -127,13 +129,6 @@ fun WeatherScreen(navController: NavHostController) {
                 .fillMaxSize()
                 .padding()
         ) {
-            /*Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .background(Brush.verticalGradient(
-                        colors = listOf(Color(0xFF2badff), Color(0xFF2aacff), Color(0xFF2cadff), Color(0xFF71c8ff), Color(0xFF72c9ff), Color(0xFF70c8ff))
-                    ))
-            )*/
             LottieAnimation(
                 composition = composition,
                 iterations = LottieConstants.IterateForever,
@@ -175,29 +170,8 @@ fun WeatherScreen(navController: NavHostController) {
                             WeatherText("Прогноз погоды на сегодня в городе \n ${city}:")
                         }
                         Spacer(modifier = Modifier.padding(16.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.Start
-                            ) {
-                                WeatherText("$temperature °C")
-                                Spacer(modifier = Modifier.height(4.dp))
-                                WeatherText("༄ $windSpeed км/ч")
-                                Spacer(modifier = Modifier.height(4.dp))
-                                WeatherText(description?.description.toString())
-                            }
-                            LottieAnimation(
-                                modifier = Modifier
-                                    .size(140.dp),
-                                composition = weatherComposition,
-                                iterations = LottieConstants.IterateForever
-                            )
-                        }
+
+                        CurrentWeatherCard(weatherUIData)
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -210,6 +184,91 @@ fun WeatherScreen(navController: NavHostController) {
     }
 }
 
+@Composable
+fun CurrentWeatherCard(
+    weatherUIData: WeatherUIData,
+) {
+    val weatherComposition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(weatherUIData.currentWeatherDescription?.lottieFile ?: R.raw.weathersunny)
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.Top,
+            modifier = Modifier
+        ) {
+            val weatherInfo = listOf(
+                Pair("${weatherUIData.currentWeather?.temperature ?: "--"} °C", null),
+                Pair("${weatherUIData.currentWeather?.windSpeed ?: "--"} км/ч", R.raw.wind_gust),
+                Pair("${weatherUIData.currentWeather?.humidity} %" ?: "0%", R.raw.humidity),
+                Pair(weatherUIData.currentWeatherDescription?.description ?: "--", null))
+
+            weatherInfo.forEach { (value, rawLottie) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                )
+                {
+                    if(rawLottie != null) {
+                        val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(rawLottie))
+                        LottieAnimation(
+                            modifier = Modifier
+                                .size(40.dp),
+                            composition = composition,
+                            iterations = LottieConstants.IterateForever,
+                            speed = 0.5f
+                        )
+                        WeatherText(value.toString())
+                    }
+                    else {
+                        Spacer(
+                            modifier = Modifier.
+                        size(40.dp)
+                        )
+                        WeatherText(value.toString())
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+        }
+        LottieAnimation(
+            modifier = Modifier
+                .size(140.dp),
+            composition = weatherComposition,
+            iterations = LottieConstants.IterateForever
+        )
+    }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun CurrentWeatherCardPreview() {
+    val testWeather = CurrentWeather(
+        time = "2025-11-11T09:00:00",
+        temperature = 19.8,
+        humidity = 56,
+        weatherCode = 3,
+        windSpeed = 8.5
+    )
+    val testDescription = WeatherDescription(
+        description = "Пасмурно",
+        lottieFile = R.raw.weathersunny
+    )
+    val weatherUIData = WeatherUIData(
+        currentWeather = testWeather,
+        currentWeatherDescription = testDescription,
+        dailyForecasts = emptyList()
+    )
+    CurrentWeatherCard(
+        weatherUIData = weatherUIData,
+    )
+}
 
 @Composable
 fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
@@ -270,10 +329,10 @@ fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
 }
 
 @Composable
-fun WeatherText(text : String) {
+fun WeatherText(text : String, fontSize: TextUnit? = null) {
     Text(
         text = text,
-        fontSize = 20.sp,
+        fontSize = fontSize ?: 20.sp,
         textAlign = TextAlign.Center,
         fontFamily = FontFamily.SansSerif,
         color = Color.White,

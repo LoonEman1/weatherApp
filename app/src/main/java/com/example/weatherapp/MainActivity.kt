@@ -45,27 +45,10 @@ class MainActivity : ComponentActivity() {
 
         Log.d("MainActivity", "onDestroy: Checking WorkManager status before cancellation")
         val workManager = WorkManager.getInstance(this.applicationContext)
-        val workInfos = workManager.getWorkInfosForUniqueWork("weather_work_chain").get()
-        if (workInfos.isNotEmpty()) {
-            workInfos.forEach { info ->
-                Log.d("WorkStatus", "Before cancellation: Work ${info.id} - status: ${info.state}")
-            }
-        } else {
-            Log.d("WorkStatus", "Before cancellation: No active workers")
-        }
 
         Log.d("MainActivity", "Cancelling weather_work_chain...")
         workManager.cancelUniqueWork("weather_work_chain")
         workManager.pruneWork()
-
-        Log.d("MainActivity", "After cancelUniqueWork: Checking status")
-        val workInfosAfter = workManager.getWorkInfosForUniqueWork("weather_work_chain").get()
-        if (workInfosAfter.isNotEmpty()) {
-            workInfosAfter.forEach { info ->
-                Log.d("WorkStatus", "After cancellation: Work ${info.id} - status: ${info.state}")
-            }
-        } else {
-            Log.d("WorkStatus", "After cancellation: All workers cancelled successfully")
-        }
+        
     }
 }
