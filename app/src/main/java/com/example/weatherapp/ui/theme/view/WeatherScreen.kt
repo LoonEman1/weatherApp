@@ -153,13 +153,6 @@ fun WeatherScreen(navController: NavHostController) {
                     }
 
                     is WeatherUIState.Success -> {
-                        val temperature = weatherUIData.currentWeather?.temperature
-                        val windSpeed = weatherUIData.currentWeather?.windSpeed
-                        val description = weatherUIData.currentWeatherDescription
-
-                        val weatherComposition by rememberLottieComposition(
-                            LottieCompositionSpec.RawRes(description?.lottieFile ?: R.raw.weathersunny)
-                        )
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -223,18 +216,18 @@ fun CurrentWeatherCard(
                             iterations = LottieConstants.IterateForever,
                             speed = 0.5f
                         )
-                        WeatherText(value.toString())
                     }
                     else {
                         Spacer(
                             modifier = Modifier.
                         size(40.dp)
                         )
-                        WeatherText(value.toString())
                     }
+                    WeatherText(value)
                 }
                 Spacer(modifier = Modifier.height(20.dp))
             }
+            Spacer(modifier = Modifier.height(20.dp))
         }
         LottieAnimation(
             modifier = Modifier
