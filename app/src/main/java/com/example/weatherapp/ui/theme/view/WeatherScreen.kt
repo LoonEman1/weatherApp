@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -64,8 +65,7 @@ import com.example.weatherapp.data.viewmodel.WeatherViewModel
 import java.time.DayOfWeek
 
 @Composable
-fun WeatherScreen(navController: NavHostController) {
-    val viewModel: WeatherViewModel = viewModel()
+fun WeatherScreen(navController: NavHostController, viewModel: WeatherViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
     val locale = LocalConfiguration.current.locales[0]
@@ -78,7 +78,7 @@ fun WeatherScreen(navController: NavHostController) {
     val city by viewModel.geoCity.collectAsState()
     val weatherUIData by viewModel.weatherUIData.collectAsState()
 
-    val isDay by viewModel.isDay.collectAsState()
+    val backgroundRes by viewModel.backgroundRes.collectAsState()
 
     val context = LocalContext.current
 
@@ -99,12 +99,6 @@ fun WeatherScreen(navController: NavHostController) {
         }
     }
 
-    val backgroundRes = if (isDay) {
-        R.raw.background_fullscreen_day
-    } else {
-        R.raw.background_fullscreen_night
-    }
-
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(backgroundRes))
 
     val requestPermissions = PermissionRequester { granted ->
@@ -113,7 +107,7 @@ fun WeatherScreen(navController: NavHostController) {
 
     LaunchedEffect(hasLocationPermission) {
         if(hasLocationPermission) {
-            viewModel.startLocationWorker(context)
+            if(viewModel.weatherResponse.value == null) viewModel.startLocationWorker(context)
         }
         else {
             requestPermissions()
@@ -168,8 +162,9 @@ fun WeatherScreen(navController: NavHostController) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        DailyForecastList(weatherUIData.dailyForecasts) { }
-
+                        DailyForecastList(weatherUIData.dailyForecasts) { day ->
+                            navController.navigate("day_details/${day.date}")
+                        }
                     }
                 }
             }
@@ -264,7 +259,7 @@ fun CurrentWeatherCardPreview() {
 }
 
 @Composable
-fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
+fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: (DayForecast) -> Unit) {
 
     LazyColumn(
         modifier = Modifier
@@ -292,7 +287,11 @@ fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: () -> Unit) {
                 )
 
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable {
+                            onDayClick(day)
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val weatherComposition by rememberLottieComposition(
@@ -361,7 +360,7 @@ fun PermissionRequester(onPermissionResult: (Boolean) -> Unit): () -> Unit {
 fun WeatherScreenPreview()
 {
     val navController = rememberNavController()
-    WeatherScreen(navController = navController)
+    WeatherScreen(navController = navController, viewModel = viewModel())
 }
 
 @Preview(showBackground = true)

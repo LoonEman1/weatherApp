@@ -10,6 +10,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.example.weatherapp.R
 import com.example.weatherapp.data.model.DayForecast
+import com.example.weatherapp.data.model.HourlyWeatherForecastUI
 import com.example.weatherapp.data.model.WeatherDescription
 import com.example.weatherapp.data.model.WeatherResponse
 import com.example.weatherapp.data.model.WeatherUIData
@@ -35,6 +36,7 @@ sealed class WeatherUIState {
 class WeatherViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow<WeatherUIState>(WeatherUIState.Loading)
+    private val _isDay = MutableStateFlow(isDayNow())
 
 
     private val _hasFinePermission = MutableStateFlow(false)
@@ -42,9 +44,13 @@ class WeatherViewModel : ViewModel() {
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
     private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
-    private val _weatherUIData = MutableStateFlow(WeatherUIData())
+    private val _bgAnimationProgress = MutableStateFlow(0f)
 
-    private val _isDay = MutableStateFlow(isDayNow())
+    private val _weatherUIData = MutableStateFlow(WeatherUIData())
+    private val _hourlyWeatherUI = MutableStateFlow(HourlyWeatherForecastUI())
+    private val _backgroundRes = MutableStateFlow(R.raw.background_fullscreen_day)
+
+
 
 
     val isDay : StateFlow<Boolean> = _isDay
@@ -59,6 +65,8 @@ class WeatherViewModel : ViewModel() {
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
     val weatherResponse: StateFlow<WeatherResponse?> = _weatherResponse.asStateFlow()
     val weatherUIData: StateFlow<WeatherUIData> = _weatherUIData.asStateFlow()
+    val hourlyWeatherUI: StateFlow<HourlyWeatherForecastUI> = _hourlyWeatherUI.asStateFlow()
+    val backgroundRes: StateFlow<Int> = _backgroundRes.asStateFlow()
 
     val locale: StateFlow<Locale> = _locale
 
@@ -76,8 +84,32 @@ class WeatherViewModel : ViewModel() {
                 } else {
                     _weatherUIData.value = WeatherUIData()
                 }
+                _backgroundRes.value =
+                    if (_isDay.value) R.raw.background_fullscreen_day else R.raw.background_fullscreen_night
             }
         }
+    }
+
+    fun setHourlyForecast(date : String) {
+        Log.d("weatherResponseValue", "${weatherResponse.value} + ${_weatherResponse.value}")
+        val hourly = weatherResponse.value?.hourly ?: return
+        Log.d("HourlyDebug", "date: $date, hourly.time: ${hourly.time.take(10)}")
+        val filtered = hourly.time.mapIndexedNotNull { index, timeStr ->
+            if(timeStr.startsWith(date)) {
+                Triple(
+                    timeStr,
+                    hourly.temperature.getOrNull(index),
+                    hourly.precipitation.getOrNull(index)
+                )
+            }
+            else null
+        }
+        Log.d("HourlyDebug", "Filtered count: ${filtered.size}")
+        _hourlyWeatherUI.value = HourlyWeatherForecastUI(
+            time = filtered.map { it.first },
+            temperature = filtered.map { it.second ?: Double.NaN },
+            precipitation = filtered.map { it.third ?: Double.NaN }
+        )
     }
 
 
@@ -156,6 +188,7 @@ class WeatherViewModel : ViewModel() {
                                 val weatherResponseObj = gson.fromJson(json, WeatherResponse::class.java)
                                 _uiState.value = WeatherUIState.Success(weatherResponseObj)
                                 _weatherResponse.value = weatherResponseObj
+                                Log.d("WeatherResponseVM", "${_weatherResponse.value}")
                             }
                         }
                     }

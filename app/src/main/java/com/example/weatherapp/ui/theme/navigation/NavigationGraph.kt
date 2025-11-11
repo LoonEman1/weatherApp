@@ -1,10 +1,12 @@
 package com.example.weatherapp.ui.theme.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHost
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.example.weatherapp.data.viewmodel.WeatherViewModel
+import com.example.weatherapp.ui.theme.view.DayDetails
 import com.example.weatherapp.ui.theme.view.WeatherScreen
 import com.example.weatherapp.ui.theme.view.WelcomeScreen
 
@@ -12,6 +14,7 @@ import com.example.weatherapp.ui.theme.view.WelcomeScreen
 fun NavigationGraph(
     navController : NavHostController
 ) {
+    val viewModel : WeatherViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = Screen.WelcomeScreen.route
@@ -27,8 +30,14 @@ fun NavigationGraph(
             route = Screen.WeatherScreen.route
         )
         {
-            WeatherScreen(navController)
+            WeatherScreen(navController, viewModel)
         }
 
+        composable(
+            route = Screen.DayDetailsScreen.route
+        ) { backStackEntry ->
+            val date = backStackEntry.arguments?.getString("date")
+            DayDetails(navController, date, viewModel)
+        }
     }
 }
