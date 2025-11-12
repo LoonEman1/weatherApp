@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.weatherapp"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.androidx.work.runtime.ktx)
     val nav_version = "2.9.3"
+    val vico_version = "1.11.1"
 
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation("androidx.navigation:navigation-runtime:$nav_version")
@@ -53,6 +54,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.compose.ui:ui-graphics:1.9.4")
+    implementation("com.patrykandpatrick.vico:compose:$vico_version")
+    implementation("com.patrykandpatrick.vico:compose-m2:${vico_version}")
+    implementation("com.patrykandpatrick.vico:compose-m3:$vico_version")
+    implementation("com.patrykandpatrick.vico:core:$vico_version")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

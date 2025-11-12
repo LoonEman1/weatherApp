@@ -6,5 +6,5 @@ sealed class Screen(val route : String) {
 
     object WeatherScreen : Screen(route = "weather_screen")
 
-    object DayDetailsScreen : Screen(route = "day_details/{date}")
+    object DayDetailsScreen : Screen(route = "day_details/{date}/{dayOfWeek}/{rawFile}/{city}")
 }

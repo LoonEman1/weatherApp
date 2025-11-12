@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.example.weatherapp.R
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
 import com.example.weatherapp.ui.theme.view.DayDetails
 import com.example.weatherapp.ui.theme.view.WeatherScreen
@@ -36,8 +37,11 @@ fun NavigationGraph(
         composable(
             route = Screen.DayDetailsScreen.route
         ) { backStackEntry ->
-            val date = backStackEntry.arguments?.getString("date")
-            DayDetails(navController, date, viewModel)
+            val date = backStackEntry.arguments?.getString("date") ?: ""
+            val dayOfWeek = backStackEntry.arguments?.getString("dayOfWeek") ?: "UNKNOWN"
+            val city = backStackEntry.arguments?.getString("city") ?: "UNKNOWN"
+            val rawFile = backStackEntry.arguments?.getString("rawFile")?.toIntOrNull() ?: R.raw.weathersunny
+            DayDetails(navController, date, viewModel, dayOfWeek, rawFile, city)
         }
     }
 }

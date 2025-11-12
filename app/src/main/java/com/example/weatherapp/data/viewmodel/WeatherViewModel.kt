@@ -44,16 +44,11 @@ class WeatherViewModel : ViewModel() {
     private val _hasLocationPermission = MutableStateFlow(false)
     private val _geoCity = MutableStateFlow<String?>(null)
     private val _weatherResponse = MutableStateFlow<WeatherResponse?>(null)
-    private val _bgAnimationProgress = MutableStateFlow(0f)
 
     private val _weatherUIData = MutableStateFlow(WeatherUIData())
     private val _hourlyWeatherUI = MutableStateFlow(HourlyWeatherForecastUI())
-    private val _backgroundRes = MutableStateFlow(R.raw.background_fullscreen_day)
+    private val _backgroundRes = MutableStateFlow(getBackgroundRes())
 
-
-
-
-    val isDay : StateFlow<Boolean> = _isDay
 
     private val _locale = MutableStateFlow(Locale.getDefault())
 
@@ -84,10 +79,12 @@ class WeatherViewModel : ViewModel() {
                 } else {
                     _weatherUIData.value = WeatherUIData()
                 }
-                _backgroundRes.value =
-                    if (_isDay.value) R.raw.background_fullscreen_day else R.raw.background_fullscreen_night
             }
         }
+    }
+
+    fun getBackgroundRes() : Int {
+        return if (_isDay.value) R.raw.background_fullscreen_day else R.raw.background_fullscreen_night
     }
 
     fun setHourlyForecast(date : String) {
@@ -96,10 +93,9 @@ class WeatherViewModel : ViewModel() {
         Log.d("HourlyDebug", "date: $date, hourly.time: ${hourly.time.take(10)}")
         val filtered = hourly.time.mapIndexedNotNull { index, timeStr ->
             if(timeStr.startsWith(date)) {
-                Triple(
+                Pair(
                     timeStr,
                     hourly.temperature.getOrNull(index),
-                    hourly.precipitation.getOrNull(index)
                 )
             }
             else null
@@ -108,7 +104,6 @@ class WeatherViewModel : ViewModel() {
         _hourlyWeatherUI.value = HourlyWeatherForecastUI(
             time = filtered.map { it.first },
             temperature = filtered.map { it.second ?: Double.NaN },
-            precipitation = filtered.map { it.third ?: Double.NaN }
         )
     }
 
@@ -238,42 +233,35 @@ class WeatherViewModel : ViewModel() {
 
    suspend fun parseDailyForecasts(weather : WeatherResponse) : List<DayForecast> = withContext(
        Dispatchers.Default) {
+        val formatter =  DateTimeFormatter.ofPattern("yyyy-MM-dd", locale.value)
+        val daily = weather.daily ?: return@withContext emptyList()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            val formatter =  DateTimeFormatter.ofPattern("yyyy-MM-dd", locale.value)
-            val daily = weather.daily ?: return@withContext emptyList()
+        val count = listOf(
+            daily.temperatureMax.size,
+            daily.temperatureMin.size,
+            daily.time.size,
+            daily.weatherCode.size
+        ).minOrNull() ?: 0
 
-            val count = listOf(
-                daily.temperatureMax.size,
-                daily.temperatureMin.size,
-                daily.time.size,
-                daily.weatherCode.size
-            ).minOrNull() ?: 0
+        val list = mutableListOf<DayForecast>()
 
-            val list = mutableListOf<DayForecast>()
-
-            for (i in 0 until count) {
-                val dateStr = daily.time[i]
-                val date = LocalDate.parse(dateStr, formatter)
-                val dayOfWeek = date.dayOfWeek
-                val tempMax = daily.temperatureMax[i]
-                val tempMin = daily.temperatureMin[i]
-                val weatherCode = daily.weatherCode[i]
-                val description = getWeatherDescription(weatherCode)
-                list.add(DayForecast(
-                    date = dateStr,
-                    dayOfWeek = dayOfWeek,
-                    tempMax = tempMax,
-                    tempMin = tempMin,
-                    weatherCode = weatherCode,
-                    weatherDescription = description
-                ))
-            }
-            return@withContext list
+        for (i in 0 until count) {
+            val dateStr = daily.time[i]
+            val date = LocalDate.parse(dateStr, formatter)
+            val dayOfWeek = date.dayOfWeek
+            val tempMax = daily.temperatureMax[i]
+            val tempMin = daily.temperatureMin[i]
+            val weatherCode = daily.weatherCode[i]
+            val description = getWeatherDescription(weatherCode)
+            list.add(DayForecast(
+                date = dateStr,
+                dayOfWeek = dayOfWeek,
+                tempMax = tempMax,
+                tempMin = tempMin,
+                weatherCode = weatherCode,
+                weatherDescription = description
+            ))
         }
-        else {
-            TODO("VERSION.SDK_INT < O")
-        }
+        return@withContext list
     }
 }
