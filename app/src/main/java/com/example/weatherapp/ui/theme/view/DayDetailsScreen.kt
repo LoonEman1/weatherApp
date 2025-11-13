@@ -131,10 +131,9 @@ fun HourlyTemperatureChart(hourlyWeatherUI: HourlyWeatherForecastUI) {
     val totalWidth = ITEM_WIDTH * itemCount
 
     val chartEntries = remember(hourlyWeatherUI) {
-        hourlyWeatherUI.temperature
-            .mapIndexed { index, temperature ->
-                entryOf(index.toFloat(), temperature.toFloat())
-            }
+        hourlyWeatherUI.temperature.mapIndexed { index, temperature ->
+            entryOf(index.toFloat(), temperature.toFloat())
+        }
     }
 
     val times = remember(hourlyWeatherUI) {
@@ -177,103 +176,100 @@ fun HourlyTemperatureChart(hourlyWeatherUI: HourlyWeatherForecastUI) {
             .fillMaxWidth()
             .horizontalScroll(scrollState),
         contentAlignment = Alignment.Center
-    )
-    {
+    ) {
         WeatherText(
             text = "Почасовой прогноз погоды:",
             fontSize = 24.sp
         )
     }
+
     Spacer(modifier = Modifier.height(14.dp))
+
     Box(
         modifier = Modifier
             .width(totalWidth)
             .height(columnHeight)
             .horizontalScroll(scrollState)
     ) {
-    repeat(times.size) { index ->
-        Box(
-            modifier = Modifier
-                .offset(x = ITEM_WIDTH * index)
-                .width(ITEM_WIDTH - 5.dp)
-                .height(columnHeight-60.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White.copy(alpha = 0.14f))
-                .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .blur(6.dp)
-        )
-        Box(
-            modifier = Modifier
-                .offset(x = ITEM_WIDTH * index)
-                .width(ITEM_WIDTH - 5.dp)
-                .height(rowHeight-10.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .border(
-                    width = 1.dp,
-                    color = Color.White.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .blur(6.dp)
-        )
-    }
-    Column {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-
-            HourlyTimeLabels(
-                hourlyWeatherUI = hourlyWeatherUI,
-                itemWidth = ITEM_WIDTH,
-                totalWidth = totalWidth,
-            )
-        }
-        Spacer(
-            modifier = Modifier
-                .height(50.dp)
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-        ) {
-            Chart(
-                chart = lineChart(
-                    lines = listOf(
-                        LineChart.LineSpec(
-                            lineColor = Color.Red.toArgb(),
-                            lineThicknessDp = 3f,
-                            point = pointComponent
-                        )
-                    )
-                ),
-                chartModelProducer = chartEntryModelProducer,
-                startAxis = rememberStartAxis(
-                    axis = null,
-                    guideline = null,
-                    tick = null,
-                    label = null,
-                    valueFormatter = startAxisValueFormatter,
-                ),
-                bottomAxis = rememberBottomAxis(
-                    axis = null,
-                    guideline = null,
-                    tick = null,
-                    label = null,
-                    valueFormatter = bottomAxisValueFormatter,
-                ),
+        repeat(times.size) { index ->
+            Box(
                 modifier = Modifier
-                    .width(totalWidth)
-                    .height(140.dp)
-                    .padding(vertical = 4.dp),
-                runInitialAnimation = true
+                    .offset(x = ITEM_WIDTH * index)
+                    .width(ITEM_WIDTH - 5.dp)
+                    .height(columnHeight - 60.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.14f))
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .blur(6.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .offset(x = ITEM_WIDTH * index)
+                    .width(ITEM_WIDTH - 5.dp)
+                    .height(rowHeight - 10.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .blur(6.dp)
             )
         }
-    }
+        Column {
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                HourlyTimeLabels(
+                    hourlyWeatherUI = hourlyWeatherUI,
+                    itemWidth = ITEM_WIDTH,
+                    totalWidth = totalWidth,
+                )
+            }
+            Spacer(
+                modifier = Modifier.height(50.dp)
+            )
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Chart(
+                    chart = lineChart(
+                        lines = listOf(
+                            LineChart.LineSpec(
+                                lineColor = Color.Red.toArgb(),
+                                lineThicknessDp = 3f,
+                                point = pointComponent
+                            )
+                        )
+                    ),
+                    chartModelProducer = chartEntryModelProducer,
+                    startAxis = rememberStartAxis(
+                        axis = null,
+                        guideline = null,
+                        tick = null,
+                        label = null,
+                        valueFormatter = startAxisValueFormatter,
+                    ),
+                    bottomAxis = rememberBottomAxis(
+                        axis = null,
+                        guideline = null,
+                        tick = null,
+                        label = null,
+                        valueFormatter = bottomAxisValueFormatter,
+                    ),
+                    modifier = Modifier
+                        .width(totalWidth)
+                        .height(140.dp)
+                        .padding(vertical = 4.dp),
+                    runInitialAnimation = true
+                )
+            }
+        }
     }
 }
 
