@@ -3,6 +3,9 @@ package com.example.weatherapp.ui.theme.view
 import DayCard
 import android.util.Log
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +14,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -28,6 +33,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
@@ -60,6 +67,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val ITEM_WIDTH = 80.dp
+val chartHeight = 140.dp
+val rowHeight = 80.dp
+val columnHeight = chartHeight + rowHeight + 50.dp
+
 
 @Composable
 fun DayDetails(navController: NavHostController, date: String?, viewModel: WeatherViewModel,
@@ -161,23 +172,59 @@ fun HourlyTemperatureChart(hourlyWeatherUI: HourlyWeatherForecastUI) {
         strokeWidthDp = 3f
     )
 
-    Column {
-        Box( modifier = Modifier
+    Box(
+        modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(scrollState),
-            contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center
+    )
+    {
+        WeatherText(
+            text = "Почасовой прогноз погоды:",
+            fontSize = 24.sp
         )
-        {
-            WeatherText(
-                text = "Почасовой прогноз погоды:",
-                fontSize = 24.sp
-            )
-        }
-        Spacer(modifier = Modifier.height(14.dp))
+    }
+    Spacer(modifier = Modifier.height(14.dp))
+    Box(
+        modifier = Modifier
+            .width(totalWidth)
+            .height(columnHeight)
+            .horizontalScroll(scrollState)
+    ) {
+    repeat(times.size) { index ->
+        Box(
+            modifier = Modifier
+                .offset(x = ITEM_WIDTH * index)
+                .width(ITEM_WIDTH - 5.dp)
+                .height(columnHeight-60.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.14f))
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .blur(6.dp)
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = ITEM_WIDTH * index)
+                .width(ITEM_WIDTH - 5.dp)
+                .height(rowHeight-10.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.3f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .blur(6.dp)
+        )
+    }
+    Column {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState)
         ) {
 
             HourlyTimeLabels(
@@ -186,12 +233,13 @@ fun HourlyTemperatureChart(hourlyWeatherUI: HourlyWeatherForecastUI) {
                 totalWidth = totalWidth,
             )
         }
-        Spacer(modifier = Modifier
-            .height(50.dp))
+        Spacer(
+            modifier = Modifier
+                .height(50.dp)
+        )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(scrollState)
         ) {
             Chart(
                 chart = lineChart(
@@ -220,12 +268,12 @@ fun HourlyTemperatureChart(hourlyWeatherUI: HourlyWeatherForecastUI) {
                 ),
                 modifier = Modifier
                     .width(totalWidth)
-                    .height(200.dp)
+                    .height(140.dp)
                     .padding(vertical = 4.dp),
                 runInitialAnimation = true
             )
         }
-
+    }
     }
 }
 
