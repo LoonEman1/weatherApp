@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -50,6 +51,8 @@ import com.example.weatherapp.ui.theme.view.common.WeatherText
 import com.example.weatherapp.ui.theme.view.common.formatTemperature
 
 import java.time.DayOfWeek
+import java.time.format.TextStyle
+import java.util.Locale
 
 @Composable
 fun WeatherScreen(navController: NavHostController, viewModel: WeatherViewModel) {
@@ -139,8 +142,10 @@ fun WeatherScreen(navController: NavHostController, viewModel: WeatherViewModel)
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        DailyForecastList(weatherUIData.dailyForecasts) { day ->
-                            navController.navigate("day_details/${day.date}/${day.dayOfWeek}/${day.weatherDescription?.lottieFile}/$city")
+                        DailyForecastList(weatherUIData.dailyForecasts, locale) { day ->
+                            navController.navigate("day_details/${day.date}/${day.dayOfWeek.getDisplayName(TextStyle.FULL, locale).replaceFirstChar {
+                                if (it.isLowerCase()) it.titlecase(locale) else it.toString()
+                            }}/${day.weatherDescription?.lottieFile}/$city")
                         }
                     }
                 }
@@ -150,7 +155,7 @@ fun WeatherScreen(navController: NavHostController, viewModel: WeatherViewModel)
 }
 
 @Composable
-fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: (DayForecast) -> Unit) {
+fun DailyForecastList(dayForecasts: List<DayForecast>, locale : Locale, onDayClick: (DayForecast) -> Unit) {
 
     LazyColumn(
         modifier = Modifier
@@ -195,7 +200,9 @@ fun DailyForecastList(dayForecasts: List<DayForecast>, onDayClick: (DayForecast)
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        WeatherText(day.dayOfWeek.toString())
+                        WeatherText(day.dayOfWeek.getDisplayName(TextStyle.FULL, locale).replaceFirstChar {
+                            if (it.isLowerCase()) it.titlecase(locale) else it.toString()
+                        })
                         LottieAnimation(
                             modifier = Modifier.size(35.dp),
                             composition = weatherComposition,
@@ -240,5 +247,6 @@ fun DailyForecastListPreview()
             weatherCode = 3,
         )
     )
-    DailyForecastList(dayForecasts = sampleData) { }
+    val locale = LocalConfiguration.current.locales[0]
+    DailyForecastList(dayForecasts = sampleData, locale) { }
 }

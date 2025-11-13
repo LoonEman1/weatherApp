@@ -65,6 +65,7 @@ import com.patrykandpatrick.vico.core.entry.entryOf
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 
 private val ITEM_WIDTH = 80.dp
 val chartHeight = 140.dp
@@ -183,7 +184,7 @@ fun HourlyTemperatureChart(hourlyWeatherUI: HourlyWeatherForecastUI) {
         )
     }
 
-    Spacer(modifier = Modifier.height(14.dp))
+    Spacer(modifier = Modifier.height(20.dp))
 
     Box(
         modifier = Modifier
@@ -337,7 +338,10 @@ fun PreviewDayDetails() {
 
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     val localDate = LocalDate.parse(date, formatter)
-    val dayOfWeek = localDate.dayOfWeek.toString()
+    val locale = viewModel.locale.collectAsState()
+    val dayOfWeek = localDate.dayOfWeek.getDisplayName(TextStyle.FULL, locale.value).replaceFirstChar {
+        if (it.isLowerCase()) it.titlecase(locale.value) else it.toString()
+    }
 
     DayDetails(navController, date, viewModel, dayOfWeek, rawFile, city)
 }
