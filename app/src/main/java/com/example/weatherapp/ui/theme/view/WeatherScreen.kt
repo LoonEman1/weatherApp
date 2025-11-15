@@ -1,9 +1,6 @@
 package com.example.weatherapp.ui.theme.view
 
 import CurrentWeatherCard
-import PermissionRequester
-import android.Manifest
-import android.content.pm.PackageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,11 +29,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -61,48 +54,15 @@ fun WeatherScreen(navController: NavHostController, viewModel: WeatherViewModel)
     val locale = LocalConfiguration.current.locales[0]
     viewModel.setLocale(locale)
 
-
-    val hasFinePermission by viewModel.hasFinePermission.collectAsState()
-    val hasCoarsePermissions by viewModel.hasCoarsePermission.collectAsState()
-    val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
     val city by viewModel.geoCity.collectAsState()
     val weatherUIData by viewModel.weatherUIData.collectAsState()
 
     val backgroundRes by viewModel.backgroundRes.collectAsState()
 
-    val context = LocalContext.current
 
-
-    LaunchedEffect(Unit) {
-        if (!hasFinePermission || !hasCoarsePermissions) {
-            val fineGranted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-            val coarseGranted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-            viewModel.updateFinePermission(fineGranted)
-            viewModel.updateCoarsePermission(coarseGranted)
-            viewModel.updatePermissionStatus(fineGranted, coarseGranted)
-        }
-    }
 
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(backgroundRes))
 
-    val requestPermissions = PermissionRequester { granted ->
-        viewModel.updatePermissionStatus(granted)
-    }
-
-    LaunchedEffect(hasLocationPermission) {
-        if(hasLocationPermission) {
-            if(viewModel.weatherResponse.value == null) viewModel.startLocationWorker(context)
-        }
-        else {
-            requestPermissions()
-        }
-    }
 
 
     Scaffold(

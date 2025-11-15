@@ -1,8 +1,15 @@
 package com.example.weatherapp.data.viewmodel
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
@@ -35,9 +42,14 @@ sealed class WeatherUIState {
 
 class WeatherViewModel : ViewModel() {
 
+    private var isWorkChainObserved = false
+    private var isObservingNetwork = false
+    private var isChainStarted = false
+
     private val _uiState = MutableStateFlow<WeatherUIState>(WeatherUIState.Loading)
     private val _isDay = MutableStateFlow(isDayNow())
 
+    private val _isNetworkAvailable = MutableStateFlow(false)
 
     private val _hasFinePermission = MutableStateFlow(false)
     private val _hasCoarsePermission = MutableStateFlow(false)
@@ -55,13 +67,13 @@ class WeatherViewModel : ViewModel() {
 
     val geoCity: StateFlow<String?> = _geoCity.asStateFlow()
 
-    val hasFinePermission : StateFlow<Boolean> = _hasFinePermission.asStateFlow()
-    val hasCoarsePermission : StateFlow<Boolean> = _hasCoarsePermission.asStateFlow()
     val hasLocationPermission: StateFlow<Boolean> = _hasLocationPermission.asStateFlow()
     val weatherResponse: StateFlow<WeatherResponse?> = _weatherResponse.asStateFlow()
     val weatherUIData: StateFlow<WeatherUIData> = _weatherUIData.asStateFlow()
     val hourlyWeatherUI: StateFlow<HourlyWeatherForecastUI> = _hourlyWeatherUI.asStateFlow()
     val backgroundRes: StateFlow<Int> = _backgroundRes.asStateFlow()
+    val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
+
 
     val locale: StateFlow<Locale> = _locale
 
@@ -107,8 +119,6 @@ class WeatherViewModel : ViewModel() {
         )
     }
 
-
-
     val uiState : StateFlow<WeatherUIState> = _uiState.asStateFlow()
 
     private fun isDayNow(): Boolean {
@@ -139,11 +149,46 @@ class WeatherViewModel : ViewModel() {
         _locale.value = locale
     }
 
-    fun startLocationWorker(context : Context) {
-        Log.d("WeatherViewModel", "Start chain of workers through WorkManagerController")
-        val workRequest = WorkManagerController(context)
-        workRequest.startLocationAndWeatherChain()
-        observeWorkChain(context, workRequest, "weather_work_chain")
+    fun startNetworkObserverThenWorkers(context: Context) {
+        if (isObservingNetwork) return
+        isObservingNetwork = true
+
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            .build()
+
+        cm.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                Log.d("WeatherViewModel", "Network available, starting workers")
+                _isNetworkAvailable.value = true
+            }
+        })
+    }
+
+    fun startLocationWorker(context: Context) {
+        if(!isChainStarted) {
+            if (_isNetworkAvailable.value == true) {
+                if (hasLocationPermission.value == true) {
+                    isChainStarted = true
+                    Log.d(
+                        "WeatherViewModel",
+                        "Start chain of workers through WorkManagerController"
+                    )
+                    val workRequest = WorkManagerController(context.applicationContext)
+                    workRequest.startLocationAndWeatherChain()
+                    if (!isWorkChainObserved) {
+                        isWorkChainObserved = true
+                        observeWorkChain(context, workRequest, "weather_work_chain")
+                    }
+                } else {
+                    Log.d("WeatherViewModel", "No permissions or weatherResponse not null")
+                }
+            } else {
+                Log.d("WeatherViewModel", "No internet")
+            }
+        }
     }
 
     fun observeWorkChain(context: Context, controller: WorkManagerController, uniqueWorkName : String) {
@@ -189,6 +234,7 @@ class WeatherViewModel : ViewModel() {
                     }
 
                     if (workInfos.isEmpty()) {
+                        isChainStarted = false
                         Log.d("WeatherViewModel", "All workers removed!")
                     } else {
                         Log.d("WeatherViewModel", "Current workers: ${workInfos.size}")
