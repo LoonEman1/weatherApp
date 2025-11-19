@@ -7,16 +7,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.example.weatherapp.R
+import com.example.weatherapp.data.preferences.PreferencesManager
 import com.example.weatherapp.data.viewmodel.WeatherViewModel
 import com.example.weatherapp.ui.theme.view.DayDetails
 import com.example.weatherapp.ui.theme.view.WeatherScreen
@@ -31,6 +30,13 @@ fun NavigationGraph(
 
     val hasLocationPermission by viewModel.hasLocationPermission.collectAsState()
     val hasInternet by viewModel.isNetworkAvailable.collectAsState()
+    val prefsManager = remember { PreferencesManager(context) }
+
+    val startDestination = if (prefsManager.isWelcomeSeen()) {
+        Screen.WeatherScreen.route
+    } else {
+        Screen.WelcomeScreen.route
+    }
 
 
     val requestPermission = PermissionRequester { granted ->
@@ -66,13 +72,13 @@ fun NavigationGraph(
 
     NavHost(
         navController = navController,
-        startDestination = Screen.WelcomeScreen.route
+        startDestination = startDestination
     ) {
         composable(
             route = Screen.WelcomeScreen.route
         )
         {
-            WelcomeScreen(navController)
+            WelcomeScreen(navController, prefsManager)
         }
 
         composable(

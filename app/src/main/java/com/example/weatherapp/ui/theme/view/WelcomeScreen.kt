@@ -21,10 +21,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.example.weatherapp.data.preferences.PreferencesManager
 import com.example.weatherapp.ui.theme.navigation.Screen
 
 @Composable
-fun WelcomeScreen(navController : NavHostController) {
+fun WelcomeScreen(navController : NavHostController, prefsManager: PreferencesManager? = null) {
     Scaffold() { innerPadding ->
         Column(
             modifier = Modifier
@@ -72,6 +73,7 @@ fun WelcomeScreen(navController : NavHostController) {
             )
             Button(
                 onClick = {
+                    prefsManager?.setWelcomeSeen()
                     navController.navigate(route = Screen.WeatherScreen.route) {
                         popUpTo(Screen.WelcomeScreen.route) {
                             inclusive = true

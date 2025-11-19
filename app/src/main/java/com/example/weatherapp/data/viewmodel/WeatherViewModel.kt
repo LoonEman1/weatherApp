@@ -1,15 +1,7 @@
 package com.example.weatherapp.data.viewmodel
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
-import android.os.Build
 import android.util.Log
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
@@ -43,7 +35,6 @@ sealed class WeatherUIState {
 class WeatherViewModel : ViewModel() {
 
     private var isWorkChainObserved = false
-    private var isObservingNetwork = false
     private var isChainStarted = false
 
     private val _uiState = MutableStateFlow<WeatherUIState>(WeatherUIState.Loading)
@@ -148,24 +139,6 @@ class WeatherViewModel : ViewModel() {
     fun setLocale(locale: Locale) {
         _locale.value = locale
     }
-
-    /*fun startNetworkObserverThenWorkers(context: Context) {
-        if (isObservingNetwork) return
-        isObservingNetwork = true
-
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val request = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            .build()
-
-        cm.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                Log.d("WeatherViewModel", "Network available, starting workers")
-                _isNetworkAvailable.value = true
-            }
-        })
-    }*/
 
     fun startLocationWorker(context: Context) {
         if(!isChainStarted) {
