@@ -36,7 +36,7 @@ class LocationWorker(
                     "longitude" to geoData.longitude,
                     "city" to geoData.city
                 )
-                Result.success(outputData)
+                return@withContext Result.success(outputData)
             }
         }
     }

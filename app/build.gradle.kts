@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp") version "2.0.21-1.0.27"
 }
 
 android {
@@ -44,6 +45,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     val nav_version = "2.9.3"
     val vico_version = "1.11.1"
+    val roomVersion = "2.6.1"
 
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation("androidx.navigation:navigation-runtime:$nav_version")
@@ -54,10 +56,16 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.compose.ui:ui-graphics:1.9.4")
+
     implementation("com.patrykandpatrick.vico:compose:$vico_version")
     implementation("com.patrykandpatrick.vico:compose-m2:${vico_version}")
     implementation("com.patrykandpatrick.vico:compose-m3:$vico_version")
     implementation("com.patrykandpatrick.vico:core:$vico_version")
+
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

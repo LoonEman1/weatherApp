@@ -149,7 +149,7 @@ class WeatherViewModel : ViewModel() {
         _locale.value = locale
     }
 
-    fun startNetworkObserverThenWorkers(context: Context) {
+    /*fun startNetworkObserverThenWorkers(context: Context) {
         if (isObservingNetwork) return
         isObservingNetwork = true
 
@@ -165,28 +165,24 @@ class WeatherViewModel : ViewModel() {
                 _isNetworkAvailable.value = true
             }
         })
-    }
+    }*/
 
     fun startLocationWorker(context: Context) {
         if(!isChainStarted) {
-            if (_isNetworkAvailable.value == true) {
-                if (hasLocationPermission.value == true) {
-                    isChainStarted = true
-                    Log.d(
-                        "WeatherViewModel",
-                        "Start chain of workers through WorkManagerController"
-                    )
-                    val workRequest = WorkManagerController(context.applicationContext)
-                    workRequest.startLocationAndWeatherChain()
-                    if (!isWorkChainObserved) {
-                        isWorkChainObserved = true
-                        observeWorkChain(context, workRequest, "weather_work_chain")
-                    }
-                } else {
-                    Log.d("WeatherViewModel", "No permissions or weatherResponse not null")
+            if (hasLocationPermission.value == true) {
+                isChainStarted = true
+                Log.d(
+                    "WeatherViewModel",
+                    "Start chain of workers through WorkManagerController"
+                )
+                val workRequest = WorkManagerController(context.applicationContext)
+                workRequest.startLocationAndWeatherChain()
+                if (!isWorkChainObserved) {
+                    isWorkChainObserved = true
+                    observeWorkChain(context, workRequest, "weather_work_chain")
                 }
             } else {
-                Log.d("WeatherViewModel", "No internet")
+                Log.d("WeatherViewModel", "No permissions or weatherResponse not null")
             }
         }
     }

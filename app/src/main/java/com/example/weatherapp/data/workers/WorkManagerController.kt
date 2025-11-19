@@ -2,6 +2,7 @@ package com.example.weatherapp.data.workers
 
 import android.content.Context
 import androidx.work.Constraints
+import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequestBuilder
@@ -15,15 +16,11 @@ class WorkManagerController(private val context : Context) {
 
     fun startLocationAndWeatherChain() {
 
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.NOT_ROAMING)
-            .build()
         val locationWorker = OneTimeWorkRequestBuilder<LocationWorker>()
             .build()
         locationWorkId = locationWorker.id
 
         val uploadWorker = OneTimeWorkRequestBuilder<WeatherWorker>()
-            .setConstraints(constraints)
             .build()
         uploadWorkId = uploadWorker.id
 

@@ -40,7 +40,6 @@ fun NavigationGraph(
 
 
     LaunchedEffect(Unit) {
-        viewModel.startNetworkObserverThenWorkers(context)
 
         val fineGranted = ContextCompat.checkSelfPermission(
             context,

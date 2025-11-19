@@ -8,7 +8,7 @@ import androidx.work.WorkerParameters
 import com.example.weatherapp.data.repository.WeatherRepository
 import com.google.gson.Gson
 
-class WeatherWorker(context : Context, workerParameters: WorkerParameters) : CoroutineWorker(context, workerParameters) {
+class WeatherWorker(private val context : Context, workerParameters: WorkerParameters) : CoroutineWorker(context, workerParameters) {
     override suspend fun doWork(): Result {
         Log.d("WeatherWorker", "WeatherWorker runAttemptCount $runAttemptCount")
 
@@ -19,8 +19,9 @@ class WeatherWorker(context : Context, workerParameters: WorkerParameters) : Cor
 
         val lat = inputData.getDouble("latitude", 0.0)
         val lon = inputData.getDouble("longitude", 0.0)
+        val city = inputData.getString("city") ?: "Unknown"
 
-        val success = WeatherRepository().getWeather(lat, lon)
+        val success = WeatherRepository(context = context.applicationContext).getWeather(lat, lon, city)
         return if (success.isSuccess) {
 
             val weatherResponse = success.getOrNull()
