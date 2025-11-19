@@ -5,12 +5,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.Location
+import android.os.Handler
 import android.os.Looper
 
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.example.weatherapp.data.model.GeoData
-import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
@@ -18,10 +18,8 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
 class GeoManager() {
@@ -45,6 +43,7 @@ class GeoManager() {
             return null
         }
 
+
         return suspendCancellableCoroutine { cont ->
 
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -56,6 +55,8 @@ class GeoManager() {
                     }
                 } else {
                     Log.d("LocationRequest", "try to get location")
+                    val timeoutHandler = Handler(Looper.getMainLooper())
+
                     val locationRequest = LocationRequest.Builder(200)
                         .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
                         .setMinUpdateIntervalMillis(400)
@@ -77,10 +78,19 @@ class GeoManager() {
                                     cont.resume(null)
                                 }
                                 fusedLocationClient.removeLocationUpdates(this)
+                                timeoutHandler.removeCallbacksAndMessages(null)
                             }
                         }
 
-                        Log.d("GeoManager", "request location updates")
+                    timeoutHandler.postDelayed({
+                        Log.e("GeoManager", "Location request timed out after 10 seconds")
+                        fusedLocationClient.removeLocationUpdates(locationCallback)
+                        if (cont.isActive) {
+                            cont.resume(null)
+                        }
+                    }, 10_000L)
+
+                    Log.d("GeoManager", "request location updates")
                         fusedLocationClient.requestLocationUpdates(
                             locationRequest,
                             locationCallback,
