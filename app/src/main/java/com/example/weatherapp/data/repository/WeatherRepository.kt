@@ -1,14 +1,13 @@
 package com.example.weatherapp.data.repository
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.util.Log
 import com.example.weatherapp.data.api.RetrofitClient
 import com.example.weatherapp.data.database.WeatherDatabase
 import com.example.weatherapp.data.database.toEntity
 import com.example.weatherapp.data.database.toWeatherResponse
 import com.example.weatherapp.data.model.WeatherResponse
+import com.example.weatherapp.data.workers.isNetworkAvailable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -17,25 +16,10 @@ class WeatherRepository(private val context : Context) {
     private val weatherDao = WeatherDatabase.getDatabase(context).weatherDao()
     private val cacheExpirationTime = 24 * 60 * 60 * 1000L
 
-
-
-    private fun isNetworkAvailable(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE)
-                as ConnectivityManager
-        val network = connectivityManager.activeNetwork ?: return false
-        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
-
-        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        val isValidated = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-
-        Log.d("WeatherRepository", "Network check: internet=$hasInternet, validated=$isValidated")
-        return hasInternet && isValidated
-    }
-
     suspend fun getWeather(latitude: Double, longitude: Double, city : String) : Result<WeatherResponse> {
         return try {
 
-            val hasInternet = isNetworkAvailable()
+            val hasInternet = isNetworkAvailable(context.applicationContext)
             Log.d("WeatherRepository", "Network check: internet=$hasInternet")
 
             if(!hasInternet) {

@@ -25,4 +25,7 @@ interface WeatherDao {
 
     @Query("DELETE FROM weather_cache")
     suspend fun clearAll()
+
+    @Query("SELECT * FROM weather_cache ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getLatestWeather(): WeatherEntity?
 }
