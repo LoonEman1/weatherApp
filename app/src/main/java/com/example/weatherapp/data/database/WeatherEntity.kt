@@ -5,13 +5,15 @@ import androidx.room.PrimaryKey
 import com.example.weatherapp.data.model.WeatherResponse
 import com.google.gson.Gson
 
-@Entity(tableName = "weather_cache")
+@Entity(tableName = "weather_cache",
+    primaryKeys = ["city", "latitudeInt", "longitudeInt"]
+)
 data class WeatherEntity(
-    @PrimaryKey
-    val id : String,
     val city : String,
     val latitude : Double,
     val longitude : Double,
+    val latitudeInt : Int,
+    val longitudeInt : Int,
     val weatherDataJson : String,
     val timestamp : Long,
 )
@@ -19,10 +21,11 @@ data class WeatherEntity(
 fun WeatherResponse.toEntity(city : String) : WeatherEntity {
     val gson = Gson()
     return WeatherEntity(
-        id = "${latitude}_${longitude}",
         city = city,
         latitude = latitude,
         longitude = longitude,
+        latitudeInt = latitude.toInt(),
+        longitudeInt = longitude.toInt(),
         weatherDataJson = gson.toJson(this),
         timestamp = System.currentTimeMillis()
     )

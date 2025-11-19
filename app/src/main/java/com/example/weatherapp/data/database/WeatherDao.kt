@@ -11,9 +11,6 @@ interface WeatherDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWeather(weather: WeatherEntity)
 
-    @Query("SELECT * FROM weather_cache WHERE id = :locationId")
-    suspend fun getWeather(locationId: String): WeatherEntity?
-
     @Query("SELECT * FROM weather_cache WHERE latitude = :lat AND longitude = :lon")
     suspend fun getWeatherByCoordinates(lat: Double, lon: Double): WeatherEntity?
 
