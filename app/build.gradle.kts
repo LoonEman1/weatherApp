@@ -57,6 +57,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.compose.ui:ui-graphics:1.9.4")
 
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+    implementation("androidx.glance:glance-material3:1.1.1")
+
     implementation("com.patrykandpatrick.vico:compose:$vico_version")
     implementation("com.patrykandpatrick.vico:compose-m2:${vico_version}")
     implementation("com.patrykandpatrick.vico:compose-m3:$vico_version")
